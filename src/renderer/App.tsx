@@ -1,5 +1,5 @@
-import { HomePage } from './pages/HomePage';
+import { EditorPage } from './pages/EditorPage';
 
 export const App = (): JSX.Element => {
-  return <HomePage />;
+  return <EditorPage />;
 };
