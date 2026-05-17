@@ -10,7 +10,13 @@ type AddLyricsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   mediaDuration?: number;
-  onCreateBlocks: (lines: string[], timingMode: AutomaticTimingMode) => void;
+  existingOriginalLines: string[];
+  onCreateBlocks: (
+    lines: string[],
+    timingMode: AutomaticTimingMode,
+    translations?: string[]
+  ) => void;
+  onApplyTranslation: (translations: string[]) => void;
 };
 
 const originalLanguages = [
@@ -25,16 +31,30 @@ export const AddLyricsModal = ({
   isOpen,
   onClose,
   mediaDuration,
-  onCreateBlocks
+  existingOriginalLines,
+  onCreateBlocks,
+  onApplyTranslation
 }: AddLyricsModalProps): JSX.Element | null => {
   const [originalText, setOriginalText] = useState('');
+  const [translationText, setTranslationText] = useState('');
   const [language, setLanguage] = useState(originalLanguages[0].value);
   const [splitMode, setSplitMode] = useState<TextSplitMode>('lines');
+  const [translationSplitMode, setTranslationSplitMode] = useState<TextSplitMode>('lines');
   const [timingMode, setTimingMode] = useState<AutomaticTimingMode>('fixed-2');
+  const [validationError, setValidationError] = useState('');
+  const hasExistingBlocks = existingOriginalLines.length > 0;
 
-  const detectedBlocks = useMemo(() => {
+  const detectedOriginalBlocks = useMemo(() => {
+    if (hasExistingBlocks) {
+      return existingOriginalLines;
+    }
+
     return splitSubtitleText(originalText, splitMode);
-  }, [originalText, splitMode]);
+  }, [existingOriginalLines, hasExistingBlocks, originalText, splitMode]);
+
+  const detectedTranslationBlocks = useMemo(() => {
+    return splitSubtitleText(translationText, translationSplitMode);
+  }, [translationText, translationSplitMode]);
 
   const timingFallbackMessage = getTimingFallbackMessage(timingMode, mediaDuration);
 
@@ -45,15 +65,41 @@ export const AddLyricsModal = ({
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
-    if (detectedBlocks.length === 0) {
+    if (detectedOriginalBlocks.length === 0) {
       return;
     }
 
-    onCreateBlocks(detectedBlocks, timingMode);
+    if (detectedTranslationBlocks.length > 0) {
+      if (detectedTranslationBlocks.length !== detectedOriginalBlocks.length) {
+        setValidationError(
+          `La traduccion tiene ${detectedTranslationBlocks.length} bloques, pero el texto original tiene ${detectedOriginalBlocks.length}. Debes igualar la cantidad antes de guardar.`
+        );
+        return;
+      }
+    }
+
+    if (hasExistingBlocks) {
+      if (detectedTranslationBlocks.length === 0) {
+        setValidationError('Pega una traduccion antes de guardar.');
+        return;
+      }
+
+      onApplyTranslation(detectedTranslationBlocks);
+    } else {
+      onCreateBlocks(
+        detectedOriginalBlocks,
+        timingMode,
+        detectedTranslationBlocks.length > 0 ? detectedTranslationBlocks : undefined
+      );
+    }
+
     setOriginalText('');
+    setTranslationText('');
     setLanguage(originalLanguages[0].value);
     setSplitMode('lines');
+    setTranslationSplitMode('lines');
     setTimingMode('fixed-2');
+    setValidationError('');
   };
 
   return (
@@ -62,7 +108,7 @@ export const AddLyricsModal = ({
         <div className="lyrics-modal__header">
           <div>
             <p id="lyrics-title">Agregar letra / traduccion</p>
-            <span>En esta fase se crearan bloques con la letra original</span>
+            <span>El texto original define la estructura de los bloques</span>
           </div>
           <button type="button" aria-label="Cerrar modal" onClick={onClose}>
             Cerrar
@@ -94,50 +140,88 @@ export const AddLyricsModal = ({
             </label>
 
             <div className="lyrics-modal__counter" aria-live="polite">
-              <span>Bloques detectados</span>
-              <strong>{detectedBlocks.length}</strong>
+              <span>Original</span>
+              <strong>{detectedOriginalBlocks.length}</strong>
+            </div>
+
+            <label className="lyrics-modal__field">
+              <span>Separar traduccion por</span>
+              <select
+                value={translationSplitMode}
+                onChange={(event) => setTranslationSplitMode(event.target.value as TextSplitMode)}
+              >
+                <option value="lines">Lineas</option>
+                <option value="paragraphs">Parrafos</option>
+              </select>
+            </label>
+
+            <div className="lyrics-modal__counter" aria-live="polite">
+              <span>Traduccion</span>
+              <strong>{detectedTranslationBlocks.length}</strong>
             </div>
           </div>
 
-          <label className="lyrics-modal__textarea">
-            <span>Texto original</span>
-            <textarea
-              value={originalText}
-              placeholder="Pega aqui la letra original de la cancion..."
-              onChange={(event) => setOriginalText(event.target.value)}
-            />
-          </label>
+          <div className="lyrics-modal__columns">
+            <label className="lyrics-modal__textarea">
+              <span>Texto original</span>
+              <textarea
+                value={hasExistingBlocks ? existingOriginalLines.join('\n') : originalText}
+                readOnly={hasExistingBlocks}
+                placeholder="Pega aqui la letra original de la cancion..."
+                onChange={(event) => {
+                  setOriginalText(event.target.value);
+                  setValidationError('');
+                }}
+              />
+            </label>
 
-          <section className="lyrics-modal__timing" aria-label="Tiempos automaticos">
-            <div>
-              <h2>Tiempos automaticos</h2>
-              {timingFallbackMessage ? <p>{timingFallbackMessage}</p> : null}
-            </div>
+            <label className="lyrics-modal__textarea">
+              <span>Traduccion</span>
+              <textarea
+                value={translationText}
+                placeholder="Pega aqui la traduccion bloque por bloque..."
+                onChange={(event) => {
+                  setTranslationText(event.target.value);
+                  setValidationError('');
+                }}
+              />
+            </label>
+          </div>
 
-            <div className="lyrics-modal__timing-options">
-              {(['fixed-0-5', 'fixed-1', 'fixed-2', 'distribute', 'manual'] as AutomaticTimingMode[]).map(
-                (mode) => (
-                  <label key={mode} className="lyrics-modal__timing-option">
-                    <input
-                      type="radio"
-                      name="timingMode"
-                      value={mode}
-                      checked={timingMode === mode}
-                      onChange={() => setTimingMode(mode)}
-                    />
-                    <span>{getTimingModeLabel(mode)}</span>
-                  </label>
-                )
-              )}
-            </div>
-          </section>
+          {!hasExistingBlocks ? (
+            <section className="lyrics-modal__timing" aria-label="Tiempos automaticos">
+              <div>
+                <h2>Tiempos automaticos</h2>
+                {timingFallbackMessage ? <p>{timingFallbackMessage}</p> : null}
+              </div>
+
+              <div className="lyrics-modal__timing-options">
+                {(['fixed-0-5', 'fixed-1', 'fixed-2', 'distribute', 'manual'] as AutomaticTimingMode[]).map(
+                  (mode) => (
+                    <label key={mode} className="lyrics-modal__timing-option">
+                      <input
+                        type="radio"
+                        name="timingMode"
+                        value={mode}
+                        checked={timingMode === mode}
+                        onChange={() => setTimingMode(mode)}
+                      />
+                      <span>{getTimingModeLabel(mode)}</span>
+                    </label>
+                  )
+                )}
+              </div>
+            </section>
+          ) : null}
+
+          {validationError ? <p className="lyrics-modal__error">{validationError}</p> : null}
 
           <div className="lyrics-modal__actions">
             <button type="button" className="lyrics-modal__secondary" onClick={onClose}>
               Cancelar
             </button>
-            <button type="submit" disabled={detectedBlocks.length === 0}>
-              Crear bloques
+            <button type="submit" disabled={detectedOriginalBlocks.length === 0}>
+              {hasExistingBlocks ? 'Guardar traduccion' : 'Crear bloques'}
             </button>
           </div>
         </form>

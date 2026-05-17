@@ -1054,7 +1054,7 @@ video.preview-canvas__media {
 
 .lyrics-modal__controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 150px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 120px minmax(0, 1fr) 120px;
   gap: 12px;
 }
 
@@ -1103,6 +1103,13 @@ video.preview-canvas__media {
   min-height: 0;
 }
 
+.lyrics-modal__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 0;
+}
+
 .lyrics-modal__textarea textarea {
   width: 100%;
   min-height: 260px;
@@ -1121,6 +1128,21 @@ video.preview-canvas__media {
 .lyrics-modal__textarea textarea:focus {
   border-color: #74b9b1;
   box-shadow: 0 0 0 3px rgba(36, 92, 87, 0.14);
+}
+
+.lyrics-modal__textarea textarea[readonly] {
+  background: #f6f8fb;
+  color: #4d596a;
+}
+
+.lyrics-modal__error {
+  margin: 0;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  font-weight: 800;
 }
 
 .lyrics-modal__timing {
@@ -1332,6 +1354,10 @@ video.preview-canvas__media {
   }
 
   .lyrics-modal__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .lyrics-modal__columns {
     grid-template-columns: 1fr;
   }
 
