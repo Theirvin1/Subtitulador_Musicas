@@ -15,6 +15,7 @@ export const IPC_CHANNELS = {
   export: {
     checkFfmpeg: 'export:check-ffmpeg',
     selectOutputDirectory: 'export:select-output-directory',
+    extractCoverFrame: 'export:extract-cover-frame',
     mp4: 'export:mp4'
   }
 } as const;

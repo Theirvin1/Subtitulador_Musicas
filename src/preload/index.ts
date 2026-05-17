@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
-import type { ExportRequest } from '../shared/types/export';
+import type { ExportRequest, ExtractCoverFrameRequest } from '../shared/types/export';
 import type { MediaKind } from '../shared/types/media';
 import type { AppSettings, Project } from '../shared/types/project';
 
@@ -22,6 +22,8 @@ const api = {
   export: {
     checkFfmpeg: () => ipcRenderer.invoke(IPC_CHANNELS.export.checkFfmpeg),
     selectOutputDirectory: () => ipcRenderer.invoke(IPC_CHANNELS.export.selectOutputDirectory),
+    extractCoverFrame: (request: ExtractCoverFrameRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.export.extractCoverFrame, request),
     mp4: (request: ExportRequest) => ipcRenderer.invoke(IPC_CHANNELS.export.mp4, request)
   }
 };

@@ -17,4 +17,15 @@ export type ExportResult = {
   outputDirectory: string;
   mp4Path?: string;
   mp3Path?: string;
+  coverPath?: string;
+};
+
+export type ExtractCoverFrameRequest = {
+  projectId: string;
+  videoPath: string;
+  currentTime: number;
+};
+
+export type ExtractCoverFrameResult = {
+  coverPath: string;
 };

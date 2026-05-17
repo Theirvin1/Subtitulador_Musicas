@@ -1,4 +1,9 @@
-import type { ExportRequest, ExportResult } from '../../shared/types/export';
+import type {
+  ExportRequest,
+  ExportResult,
+  ExtractCoverFrameRequest,
+  ExtractCoverFrameResult
+} from '../../shared/types/export';
 
 export const exportService = {
   checkFfmpeg(): Promise<boolean> {
@@ -6,6 +11,9 @@ export const exportService = {
   },
   selectOutputDirectory(): Promise<string | null> {
     return window.subMusic.export.selectOutputDirectory();
+  },
+  extractCoverFrame(request: ExtractCoverFrameRequest): Promise<ExtractCoverFrameResult> {
+    return window.subMusic.export.extractCoverFrame(request);
   },
   exportMp4(request: ExportRequest): Promise<ExportResult> {
     return window.subMusic.export.mp4(request);

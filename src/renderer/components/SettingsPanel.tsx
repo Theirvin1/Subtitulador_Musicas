@@ -4,13 +4,15 @@ import {
 } from '../../shared/constants/subtitleStyle';
 import { VIDEO_FORMAT_PRESETS } from '../../shared/constants/videoFormats';
 import type { Project, SubtitleStyle, VideoFormat } from '../../shared/types/project';
-import { getFileName } from '../services/fileUrl';
+import { getFileName, toFileUrl } from '../services/fileUrl';
 
 type SettingsPanelProps = {
   activeProject: Project | null;
   onSelectAudio: () => void;
   onSelectVideo: () => void;
   onSelectBackground: () => void;
+  onSelectCover: () => void;
+  onExtractCoverFrame: () => void;
   onChangeVideoFormat: (videoFormat: VideoFormat) => void;
   onChangeSubtitleStyle: (updates: Partial<SubtitleStyle>) => void;
   onCenterSubtitles: () => void;
@@ -27,6 +29,8 @@ export const SettingsPanel = ({
   onSelectAudio,
   onSelectVideo,
   onSelectBackground,
+  onSelectCover,
+  onExtractCoverFrame,
   onChangeVideoFormat,
   onChangeSubtitleStyle,
   onCenterSubtitles,
@@ -122,6 +126,30 @@ export const SettingsPanel = ({
             </div>
             <button type="button" onClick={onSelectBackground}>
               Cargar
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="settings-panel__group">
+        <h2>Portada</h2>
+        <div className="cover-editor">
+          {activeProject?.coverPath ? (
+            <img
+              className="cover-editor__preview"
+              src={toFileUrl(activeProject.coverPath)}
+              alt="Portada del proyecto"
+            />
+          ) : (
+            <div className="cover-editor__empty">Sin portada</div>
+          )}
+          <div className="cover-editor__details">
+            <strong>{getFileName(activeProject?.coverPath)}</strong>
+            <button type="button" onClick={onSelectCover}>
+              Agregar portada desde archivo
+            </button>
+            <button type="button" onClick={onExtractCoverFrame}>
+              Seleccionar frame como portada
             </button>
           </div>
         </div>

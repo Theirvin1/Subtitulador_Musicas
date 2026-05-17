@@ -143,7 +143,9 @@ export const ExportModal = ({
       });
 
       setOutputPaths(
-        [result.mp4Path, result.mp3Path].filter((path): path is string => Boolean(path))
+        [result.mp4Path, result.mp3Path, result.coverPath].filter((path): path is string =>
+          Boolean(path)
+        )
       );
       setStatus('finished');
       setMessage(`Finalizado en ${result.outputDirectory}`);

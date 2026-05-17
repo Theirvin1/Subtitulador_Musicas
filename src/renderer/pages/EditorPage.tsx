@@ -12,6 +12,7 @@ import { useActiveProject } from '../hooks/useActiveProject';
 import { useMediaPlayback } from '../hooks/useMediaPlayback';
 import { toFileUrl } from '../services/fileUrl';
 import { mediaService } from '../services/mediaService';
+import { exportService } from '../services/exportService';
 import { projectStorage } from '../services/projectStorage';
 import {
   normalizeTimeRange,
@@ -273,11 +274,43 @@ export const EditorPage = (): JSX.Element => {
       audioPath: kind === 'audio' ? mediaFile.path : project.audioPath,
       videoPath: kind === 'video' ? mediaFile.path : project.videoPath,
       backgroundPath: kind === 'background' ? mediaFile.path : project.backgroundPath,
+      coverPath: kind === 'cover' ? mediaFile.path : project.coverPath,
       updatedAt: new Date().toISOString()
     }));
 
     markUnsaved();
     setProjectMessage(`${mediaFile.name} cargado en el proyecto`);
+  };
+
+  const handleExtractCoverFrame = async (): Promise<void> => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de seleccionar portada');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    if (!activeProject.videoPath) {
+      setProjectMessage('Carga un video antes de seleccionar un frame como portada');
+      return;
+    }
+
+    try {
+      const result = await exportService.extractCoverFrame({
+        projectId: activeProject.id,
+        videoPath: activeProject.videoPath,
+        currentTime
+      });
+
+      updateActiveProject((project) => ({
+        ...project,
+        coverPath: result.coverPath,
+        updatedAt: new Date().toISOString()
+      }));
+      markUnsaved();
+      setProjectMessage('Frame seleccionado como portada');
+    } catch (error) {
+      setProjectMessage(error instanceof Error ? error.message : 'Error al generar portada');
+    }
   };
 
   const handleChangeVideoFormat = (videoFormat: VideoFormat): void => {
@@ -715,6 +748,12 @@ export const EditorPage = (): JSX.Element => {
           }}
           onSelectBackground={() => {
             void handleSelectMedia('background');
+          }}
+          onSelectCover={() => {
+            void handleSelectMedia('cover');
+          }}
+          onExtractCoverFrame={() => {
+            void handleExtractCoverFrame();
           }}
           onChangeVideoFormat={handleChangeVideoFormat}
           onChangeSubtitleStyle={handleChangeSubtitleStyle}
