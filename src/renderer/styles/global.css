@@ -216,7 +216,8 @@ button {
   position: relative;
   display: grid;
   width: min(760px, 92%);
-  aspect-ratio: 16 / 9;
+  max-width: min(760px, 92%);
+  max-height: min(520px, 88%);
   overflow: hidden;
   border-radius: 8px;
   background:
@@ -386,6 +387,48 @@ video.preview-canvas__media {
   background: #e5f3f1;
   color: #174c47;
   box-shadow: inset 0 0 0 1px #8bc9c1;
+}
+
+.video-format-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.video-format-grid__option {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  border-radius: 7px;
+  background: #f6f8fb;
+  padding: 9px 10px;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px #dce2eb;
+}
+
+.video-format-grid__option span {
+  color: #151c27;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.video-format-grid__option strong {
+  overflow: hidden;
+  color: #687386;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-format-grid__option.is-active {
+  background: #e5f3f1;
+  box-shadow: inset 0 0 0 1px #8bc9c1;
+}
+
+.video-format-grid__option.is-active span,
+.video-format-grid__option.is-active strong {
+  color: #174c47;
 }
 
 .settings-panel__field,

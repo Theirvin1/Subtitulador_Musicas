@@ -30,6 +30,7 @@ export type ProjectSummary = Pick<
 export type VideoFormatPreset = {
   value: VideoFormat;
   label: string;
+  shortLabel: string;
   width: number;
   height: number;
 };
