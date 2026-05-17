@@ -11,5 +11,10 @@ export const IPC_CHANNELS = {
   },
   media: {
     selectFile: 'media:select-file'
+  },
+  export: {
+    checkFfmpeg: 'export:check-ffmpeg',
+    selectOutputDirectory: 'export:select-output-directory',
+    mp4: 'export:mp4'
   }
 } as const;

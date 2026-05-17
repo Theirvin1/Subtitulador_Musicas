@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { AddLyricsModal } from '../components/AddLyricsModal';
+import { ExportModal } from '../components/ExportModal';
 import { HistoryModal } from '../components/HistoryModal';
 import { PlaybackControls } from '../components/PlaybackControls';
 import { NewProjectModal } from '../components/NewProjectModal';
@@ -88,6 +89,7 @@ const formatSaveStatus = (
 export const EditorPage = (): JSX.Element => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isAddLyricsModalOpen, setIsAddLyricsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [savedProjects, setSavedProjects] = useState<ProjectSummary[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -667,6 +669,7 @@ export const EditorPage = (): JSX.Element => {
         onSaveProject={() => {
           void handleSaveProject();
         }}
+        onExportProject={() => setIsExportModalOpen(true)}
       />
 
       <div className="editor-page__status" role="status">
@@ -747,6 +750,13 @@ export const EditorPage = (): JSX.Element => {
         existingOriginalLines={subtitleBlocks.map((block) => block.originalText)}
         onCreateBlocks={handleCreateSubtitleBlocks}
         onApplyTranslation={handleApplyTranslation}
+      />
+
+      <ExportModal
+        isOpen={isExportModalOpen}
+        project={activeProject}
+        subtitleBlocks={subtitleBlocks}
+        onClose={() => setIsExportModalOpen(false)}
       />
 
       {!isVideoPlayback && mediaUrl ? (

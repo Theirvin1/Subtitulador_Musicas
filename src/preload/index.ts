@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
+import type { ExportRequest } from '../shared/types/export';
 import type { MediaKind } from '../shared/types/media';
 import type { AppSettings, Project } from '../shared/types/project';
 
@@ -17,6 +18,11 @@ const api = {
   },
   media: {
     selectFile: (kind: MediaKind) => ipcRenderer.invoke(IPC_CHANNELS.media.selectFile, kind)
+  },
+  export: {
+    checkFfmpeg: () => ipcRenderer.invoke(IPC_CHANNELS.export.checkFfmpeg),
+    selectOutputDirectory: () => ipcRenderer.invoke(IPC_CHANNELS.export.selectOutputDirectory),
+    mp4: (request: ExportRequest) => ipcRenderer.invoke(IPC_CHANNELS.export.mp4, request)
   }
 };
 
