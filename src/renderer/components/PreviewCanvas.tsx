@@ -1,12 +1,19 @@
-import type { Project } from '../../shared/types/project';
+import type { RefObject } from 'react';
+import type { Project, SubtitleBlock } from '../../shared/types/project';
 import { DEFAULT_VIDEO_FORMAT, getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import { toFileUrl } from '../services/fileUrl';
 
 type PreviewCanvasProps = {
   activeProject: Project | null;
+  activeSubtitleBlock: SubtitleBlock | null;
+  mediaRef: RefObject<HTMLMediaElement>;
 };
 
-export const PreviewCanvas = ({ activeProject }: PreviewCanvasProps): JSX.Element => {
+export const PreviewCanvas = ({
+  activeProject,
+  activeSubtitleBlock,
+  mediaRef
+}: PreviewCanvasProps): JSX.Element => {
   const backgroundUrl = toFileUrl(activeProject?.backgroundPath);
   const videoUrl = toFileUrl(activeProject?.videoPath);
   const preset = getVideoFormatPreset(activeProject?.videoFormat ?? DEFAULT_VIDEO_FORMAT);
@@ -25,7 +32,7 @@ export const PreviewCanvas = ({ activeProject }: PreviewCanvasProps): JSX.Elemen
           </span>
 
           {videoUrl ? (
-            <video className="preview-canvas__media" src={videoUrl} muted controls />
+            <video ref={mediaRef as RefObject<HTMLVideoElement>} className="preview-canvas__media" src={videoUrl} muted />
           ) : backgroundUrl ? (
             <img className="preview-canvas__media" src={backgroundUrl} alt="Fondo del proyecto" />
           ) : (
@@ -41,10 +48,12 @@ export const PreviewCanvas = ({ activeProject }: PreviewCanvasProps): JSX.Elemen
             </div>
           )}
 
-          <div className="preview-canvas__subtitles">
-            <p>Tonight we follow every beat</p>
-            <span>Esta noche seguimos cada ritmo</span>
-          </div>
+          {activeSubtitleBlock ? (
+            <div className="preview-canvas__subtitles">
+              <p>{activeSubtitleBlock.originalText}</p>
+              {activeSubtitleBlock.translatedText ? <span>{activeSubtitleBlock.translatedText}</span> : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
