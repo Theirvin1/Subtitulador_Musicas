@@ -10,6 +10,11 @@ import { TopBar } from '../components/TopBar';
 import { useActiveProject } from '../hooks/useActiveProject';
 import { mediaService } from '../services/mediaService';
 import { projectStorage } from '../services/projectStorage';
+import {
+  normalizeTimeRange,
+  reorderSubtitleBlocks,
+  shiftSubtitleBlock
+} from '../services/subtitleBlocks';
 import { assignSubtitleTimings, type AutomaticTimingMode } from '../services/subtitleTiming';
 import { getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { MediaKind } from '../../shared/types/media';
@@ -173,21 +178,168 @@ export const EditorPage = (): JSX.Element => {
     setProjectMessage(`${nextBlocks.length} bloques creados con tiempos iniciales`);
   };
 
-  const handleUpdateSubtitleBlock = (blockId: string, text: string): void => {
+  const touchProject = (): void => {
+    updateActiveProject((project) => ({
+      ...project,
+      updatedAt: new Date().toISOString()
+    }));
+  };
+
+  const handleChangeSubtitleBlock = (
+    blockId: string,
+    updates: Partial<SubtitleBlock>
+  ): void => {
+    setSubtitleBlocks((currentBlocks) =>
+      currentBlocks.map((block) => {
+        if (block.id !== blockId) {
+          return block;
+        }
+
+        const nextBlock = {
+          ...block,
+          ...updates
+        };
+        const nextStartTime =
+          updates.startTime !== undefined ? updates.startTime : nextBlock.startTime;
+        const nextEndTime = updates.endTime !== undefined ? updates.endTime : nextBlock.endTime;
+
+        return {
+          ...nextBlock,
+          ...normalizeTimeRange(nextStartTime, nextEndTime)
+        };
+      })
+    );
+    touchProject();
+  };
+
+  const handleShiftSubtitleBlockTime = (blockId: string, offset: number): void => {
+    setSubtitleBlocks((currentBlocks) =>
+      currentBlocks.map((block) => (block.id === blockId ? shiftSubtitleBlock(block, offset) : block))
+    );
+    touchProject();
+  };
+
+  const splitText = (text: string): [string, string] | null => {
+    const trimmedText = text.trim();
+
+    if (!trimmedText) {
+      return null;
+    }
+
+    const words = trimmedText.split(/\s+/);
+    if (words.length < 2) {
+      return null;
+    }
+
+    const splitIndex = Math.ceil(words.length / 2);
+    return [words.slice(0, splitIndex).join(' '), words.slice(splitIndex).join(' ')];
+  };
+
+  const handleSplitSubtitleBlock = (blockId: string): void => {
+    let didSplit = false;
+
+    setSubtitleBlocks((currentBlocks) => {
+      const blockIndex = currentBlocks.findIndex((block) => block.id === blockId);
+      const block = currentBlocks[blockIndex];
+
+      if (!block) {
+        return currentBlocks;
+      }
+
+      const splitOriginalText = splitText(block.originalText);
+      if (!splitOriginalText) {
+        setProjectMessage('No hay suficiente texto para dividir el bloque');
+        return currentBlocks;
+      }
+
+      const splitTranslatedText = block.translatedText.trim()
+        ? splitText(block.translatedText) ?? [block.translatedText, '']
+        : ['', ''];
+      const midpoint = block.startTime + (block.endTime - block.startTime) / 2;
+      const firstBlock: SubtitleBlock = {
+        ...block,
+        originalText: splitOriginalText[0],
+        translatedText: splitTranslatedText[0],
+        endTime: Math.max(block.startTime + 0.001, midpoint)
+      };
+      const secondBlock: SubtitleBlock = {
+        ...block,
+        id: createSubtitleBlockId(),
+        originalText: splitOriginalText[1],
+        translatedText: splitTranslatedText[1],
+        startTime: Math.max(firstBlock.endTime, midpoint),
+        endTime: Math.max(firstBlock.endTime + 0.001, block.endTime)
+      };
+
+      setProjectMessage('Bloque dividido');
+      didSplit = true;
+      return reorderSubtitleBlocks([
+        ...currentBlocks.slice(0, blockIndex),
+        firstBlock,
+        secondBlock,
+        ...currentBlocks.slice(blockIndex + 1)
+      ]);
+    });
+
+    if (didSplit) {
+      touchProject();
+    }
+  };
+
+  const handleJoinSubtitleBlockWithNext = (blockId: string): void => {
+    let didJoin = false;
+
+    setSubtitleBlocks((currentBlocks) => {
+      const blockIndex = currentBlocks.findIndex((block) => block.id === blockId);
+      const block = currentBlocks[blockIndex];
+      const nextBlock = currentBlocks[blockIndex + 1];
+
+      if (!block || !nextBlock) {
+        return currentBlocks;
+      }
+
+      const joinedBlock: SubtitleBlock = {
+        ...block,
+        originalText: [block.originalText, nextBlock.originalText].filter(Boolean).join('\n'),
+        translatedText: [block.translatedText, nextBlock.translatedText].filter(Boolean).join('\n'),
+        endTime: Math.max(block.endTime, nextBlock.endTime),
+        enabled: block.enabled || nextBlock.enabled
+      };
+
+      setProjectMessage('Bloque unido con el siguiente');
+      didJoin = true;
+      return reorderSubtitleBlocks([
+        ...currentBlocks.slice(0, blockIndex),
+        joinedBlock,
+        ...currentBlocks.slice(blockIndex + 2)
+      ]);
+    });
+
+    if (didJoin) {
+      touchProject();
+    }
+  };
+
+  const handleDeleteSubtitleBlock = (blockId: string): void => {
+    setSubtitleBlocks((currentBlocks) =>
+      reorderSubtitleBlocks(currentBlocks.filter((block) => block.id !== blockId))
+    );
+    setProjectMessage('Bloque eliminado');
+    touchProject();
+  };
+
+  const handleToggleSubtitleBlock = (blockId: string): void => {
     setSubtitleBlocks((currentBlocks) =>
       currentBlocks.map((block) =>
         block.id === blockId
           ? {
               ...block,
-              originalText: text
+              enabled: !block.enabled
             }
           : block
       )
     );
-    updateActiveProject((project) => ({
-      ...project,
-      updatedAt: new Date().toISOString()
-    }));
+    touchProject();
   };
 
   return (
@@ -214,7 +366,12 @@ export const EditorPage = (): JSX.Element => {
           <SubtitleBlocksPanel
             blocks={subtitleBlocks}
             onAddText={handleOpenAddLyrics}
-            onUpdateBlock={handleUpdateSubtitleBlock}
+            onChangeBlock={handleChangeSubtitleBlock}
+            onShiftBlockTime={handleShiftSubtitleBlockTime}
+            onSplitBlock={handleSplitSubtitleBlock}
+            onJoinWithNext={handleJoinSubtitleBlockWithNext}
+            onDeleteBlock={handleDeleteSubtitleBlock}
+            onToggleBlock={handleToggleSubtitleBlock}
           />
         </div>
 
