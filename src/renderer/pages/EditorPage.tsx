@@ -7,7 +7,9 @@ import { SettingsPanel } from '../components/SettingsPanel';
 import { SubtitleBlocksPanel } from '../components/SubtitleBlocksPanel';
 import { TopBar } from '../components/TopBar';
 import { useActiveProject } from '../hooks/useActiveProject';
+import { mediaService } from '../services/mediaService';
 import { projectStorage } from '../services/projectStorage';
+import type { MediaKind } from '../../shared/types/media';
 import type { ProjectSummary } from '../../shared/types/project';
 
 export const EditorPage = (): JSX.Element => {
@@ -16,7 +18,8 @@ export const EditorPage = (): JSX.Element => {
   const [savedProjects, setSavedProjects] = useState<ProjectSummary[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [projectMessage, setProjectMessage] = useState('Proyecto en memoria');
-  const { activeProject, createNewProject, setActiveProject } = useActiveProject();
+  const { activeProject, createNewProject, setActiveProject, updateActiveProject } =
+    useActiveProject();
 
   const refreshHistory = async (): Promise<void> => {
     setIsHistoryLoading(true);
@@ -72,6 +75,29 @@ export const EditorPage = (): JSX.Element => {
     await refreshHistory();
   };
 
+  const handleSelectMedia = async (kind: MediaKind): Promise<void> => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de cargar multimedia');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    const mediaFile = await mediaService.selectFile(kind);
+    if (!mediaFile) {
+      return;
+    }
+
+    updateActiveProject((project) => ({
+      ...project,
+      audioPath: kind === 'audio' ? mediaFile.path : project.audioPath,
+      videoPath: kind === 'video' ? mediaFile.path : project.videoPath,
+      backgroundPath: kind === 'background' ? mediaFile.path : project.backgroundPath,
+      updatedAt: new Date().toISOString()
+    }));
+
+    setProjectMessage(`${mediaFile.name} cargado en el proyecto`);
+  };
+
   return (
     <main className="editor-page">
       <TopBar
@@ -91,12 +117,23 @@ export const EditorPage = (): JSX.Element => {
 
       <section className="editor-page__workspace" aria-label="Editor de video musical">
         <div className="editor-page__main">
-          <PreviewCanvas />
+          <PreviewCanvas activeProject={activeProject} />
           <PlaybackControls />
           <SubtitleBlocksPanel />
         </div>
 
-        <SettingsPanel activeProject={activeProject} />
+        <SettingsPanel
+          activeProject={activeProject}
+          onSelectAudio={() => {
+            void handleSelectMedia('audio');
+          }}
+          onSelectVideo={() => {
+            void handleSelectMedia('video');
+          }}
+          onSelectBackground={() => {
+            void handleSelectMedia('background');
+          }}
+        />
       </section>
 
       <NewProjectModal

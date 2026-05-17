@@ -1,5 +1,6 @@
 export {};
 
+import type { MediaFile, MediaKind } from './media';
 import type { Project, ProjectSummary } from './project';
 
 declare global {
@@ -11,6 +12,9 @@ declare global {
         list: () => Promise<ProjectSummary[]>;
         open: (projectId: string) => Promise<Project | null>;
         delete: (projectId: string) => Promise<boolean>;
+      };
+      media: {
+        selectFile: (kind: MediaKind) => Promise<MediaFile | null>;
       };
     };
   }

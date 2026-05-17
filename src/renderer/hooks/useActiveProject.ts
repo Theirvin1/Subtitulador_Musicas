@@ -11,6 +11,7 @@ type ActiveProjectState = {
   activeProject: Project | null;
   createNewProject: (input: CreateProjectInput) => Project;
   setActiveProject: (project: Project | null) => void;
+  updateActiveProject: (updater: (project: Project) => Project) => Project | null;
 };
 
 const createProjectId = (): string => {
@@ -45,9 +46,25 @@ export const useActiveProject = (): ActiveProjectState => {
     return project;
   }, []);
 
+  const updateActiveProject = useCallback((updater: (project: Project) => Project): Project | null => {
+    let updatedProject: Project | null = null;
+
+    setActiveProject((currentProject) => {
+      if (!currentProject) {
+        return currentProject;
+      }
+
+      updatedProject = updater(currentProject);
+      return updatedProject;
+    });
+
+    return updatedProject;
+  }, []);
+
   return {
     activeProject,
     createNewProject,
-    setActiveProject
+    setActiveProject,
+    updateActiveProject
   };
 };
