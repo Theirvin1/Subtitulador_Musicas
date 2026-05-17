@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState, type RefObject } from 'react';
 import { AddLyricsModal } from '../components/AddLyricsModal';
 import { HistoryModal } from '../components/HistoryModal';
 import { PlaybackControls } from '../components/PlaybackControls';
@@ -8,6 +8,8 @@ import { SettingsPanel } from '../components/SettingsPanel';
 import { SubtitleBlocksPanel } from '../components/SubtitleBlocksPanel';
 import { TopBar } from '../components/TopBar';
 import { useActiveProject } from '../hooks/useActiveProject';
+import { useMediaPlayback } from '../hooks/useMediaPlayback';
+import { toFileUrl } from '../services/fileUrl';
 import { mediaService } from '../services/mediaService';
 import { projectStorage } from '../services/projectStorage';
 import {
@@ -38,6 +40,19 @@ export const EditorPage = (): JSX.Element => {
   const [subtitleBlocks, setSubtitleBlocks] = useState<SubtitleBlock[]>([]);
   const { activeProject, createNewProject, setActiveProject, updateActiveProject } =
     useActiveProject();
+  const mediaUrl = toFileUrl(activeProject?.videoPath ?? activeProject?.audioPath);
+  const isVideoPlayback = Boolean(activeProject?.videoPath);
+  const { mediaRef, currentTime, duration, isPlaying, play, pause, seek } = useMediaPlayback({
+    mediaUrl
+  });
+  const activeSubtitleBlock = useMemo(() => {
+    return (
+      subtitleBlocks.find(
+        (block) =>
+          block.enabled && block.startTime <= currentTime && currentTime <= block.endTime
+      ) ?? null
+    );
+  }, [currentTime, subtitleBlocks]);
 
   const refreshHistory = async (): Promise<void> => {
     setIsHistoryLoading(true);
@@ -397,8 +412,20 @@ export const EditorPage = (): JSX.Element => {
 
       <section className="editor-page__workspace" aria-label="Editor de video musical">
         <div className="editor-page__main">
-          <PreviewCanvas activeProject={activeProject} />
-          <PlaybackControls />
+          <PreviewCanvas
+            activeProject={activeProject}
+            activeSubtitleBlock={activeSubtitleBlock}
+            mediaRef={mediaRef}
+          />
+          <PlaybackControls
+            currentTime={currentTime}
+            duration={duration}
+            isPlaying={isPlaying}
+            hasMedia={Boolean(mediaUrl)}
+            onPlay={play}
+            onPause={pause}
+            onSeek={seek}
+          />
           <SubtitleBlocksPanel
             blocks={subtitleBlocks}
             onAddText={handleOpenAddLyrics}
@@ -440,10 +467,15 @@ export const EditorPage = (): JSX.Element => {
       <AddLyricsModal
         isOpen={isAddLyricsModalOpen}
         onClose={() => setIsAddLyricsModalOpen(false)}
+        mediaDuration={duration}
         existingOriginalLines={subtitleBlocks.map((block) => block.originalText)}
         onCreateBlocks={handleCreateSubtitleBlocks}
         onApplyTranslation={handleApplyTranslation}
       />
+
+      {!isVideoPlayback && mediaUrl ? (
+        <audio ref={mediaRef as RefObject<HTMLAudioElement>} src={mediaUrl} />
+      ) : null}
 
       <HistoryModal
         isOpen={isHistoryModalOpen}
