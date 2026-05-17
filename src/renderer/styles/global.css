@@ -45,7 +45,7 @@ button {
 
 .editor-page {
   display: grid;
-  grid-template-rows: 68px minmax(0, 1fr);
+  grid-template-rows: 68px 36px minmax(0, 1fr);
   min-height: 100vh;
   background: #eef1f5;
 }
@@ -157,6 +157,17 @@ button {
   background: #245c57;
   color: #ffffff;
   box-shadow: none;
+}
+
+.editor-page__status {
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+  border-bottom: 1px solid #d9dee7;
+  background: #f7f9fc;
+  color: #687386;
+  font-size: 0.84rem;
+  font-weight: 700;
 }
 
 .editor-page__workspace {
@@ -657,15 +668,27 @@ button {
   background: rgba(18, 27, 40, 0.52);
 }
 
-.new-project-modal {
-  width: min(520px, 100%);
+.new-project-modal,
+.history-modal {
   border: 1px solid #d9dee7;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 24px 90px rgba(11, 18, 30, 0.32);
 }
 
-.new-project-modal__header {
+.new-project-modal {
+  width: min(520px, 100%);
+}
+
+.history-modal {
+  width: min(920px, 100%);
+  max-height: min(720px, calc(100vh - 48px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.new-project-modal__header,
+.history-modal__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -674,21 +697,24 @@ button {
   border-bottom: 1px solid #e1e6ef;
 }
 
-.new-project-modal__header p {
+.new-project-modal__header p,
+.history-modal__header p {
   margin: 0;
   color: #151c27;
   font-size: 1.05rem;
   font-weight: 900;
 }
 
-.new-project-modal__header span {
+.new-project-modal__header span,
+.history-modal__header span {
   display: block;
   margin-top: 3px;
   color: #687386;
   font-size: 0.86rem;
 }
 
-.new-project-modal__header button {
+.new-project-modal__header button,
+.history-modal__header button {
   padding: 0 12px;
 }
 
@@ -749,6 +775,91 @@ button {
   background: #ffffff;
 }
 
+.history-modal__content {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px 18px;
+}
+
+.history-modal__empty {
+  display: grid;
+  min-height: 160px;
+  place-items: center;
+  margin: 0;
+  border: 1px dashed #cfd7e4;
+  border-radius: 8px;
+  color: #687386;
+  font-weight: 800;
+}
+
+.history-modal__list {
+  display: grid;
+  gap: 10px;
+}
+
+.history-project {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 150px 150px auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #dce2eb;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.history-project__main,
+.history-project__date {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.history-project__main strong {
+  overflow: hidden;
+  color: #151c27;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-project__main span,
+.history-project__date span {
+  color: #687386;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.history-project__date strong {
+  color: #293241;
+  font-size: 0.82rem;
+}
+
+.history-project__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.history-project__actions button {
+  min-height: 34px;
+  border-radius: 7px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #293241;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px #d6dce6;
+}
+
+.history-project__actions button:first-child {
+  background: #245c57;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.history-project__actions button:last-child {
+  color: #9a3412;
+}
+
 @media (max-width: 980px) {
   body {
     overflow: auto;
@@ -756,6 +867,7 @@ button {
 
   .editor-page {
     min-height: 100vh;
+    grid-template-rows: auto 36px minmax(0, 1fr);
   }
 
   .top-bar {
@@ -789,6 +901,19 @@ button {
   .settings-panel {
     overflow: visible;
   }
+
+  .history-project {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .history-project__main,
+  .history-project__actions {
+    grid-column: 1 / -1;
+  }
+
+  .history-project__actions {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 680px) {
@@ -806,14 +931,21 @@ button {
   .playback-controls__row,
   .subtitle-blocks__header,
   .new-project-modal__header,
-  .new-project-modal__actions {
+  .new-project-modal__actions,
+  .history-modal__header {
     align-items: flex-start;
     flex-direction: column;
   }
 
   .new-project-modal__actions,
-  .new-project-modal__actions button {
+  .new-project-modal__actions button,
+  .history-project__actions,
+  .history-project__actions button {
     width: 100%;
+  }
+
+  .history-project {
+    grid-template-columns: 1fr;
   }
 
   .subtitle-block {

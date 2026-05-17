@@ -22,6 +22,11 @@ export type Project = {
   updatedAt: string;
 };
 
+export type ProjectSummary = Pick<
+  Project,
+  'id' | 'name' | 'videoFormat' | 'width' | 'height' | 'fps' | 'createdAt' | 'updatedAt'
+>;
+
 export type VideoFormatPreset = {
   value: VideoFormat;
   label: string;
