@@ -10,6 +10,7 @@ import { TopBar } from '../components/TopBar';
 import { useActiveProject } from '../hooks/useActiveProject';
 import { mediaService } from '../services/mediaService';
 import { projectStorage } from '../services/projectStorage';
+import { assignSubtitleTimings, type AutomaticTimingMode } from '../services/subtitleTiming';
 import { getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { MediaKind } from '../../shared/types/media';
 import type { ProjectSummary, SubtitleBlock, VideoFormat } from '../../shared/types/project';
@@ -142,18 +143,22 @@ export const EditorPage = (): JSX.Element => {
     setIsAddLyricsModalOpen(true);
   };
 
-  const handleCreateSubtitleBlocks = (lines: string[]): void => {
+  const handleCreateSubtitleBlocks = (lines: string[], timingMode: AutomaticTimingMode): void => {
     if (!activeProject) {
       return;
     }
 
     const nextStartOrder = subtitleBlocks.length + 1;
+    const timings = assignSubtitleTimings({
+      blockCount: lines.length,
+      mode: timingMode
+    });
     const nextBlocks = lines.map<SubtitleBlock>((line, index) => ({
       id: createSubtitleBlockId(),
       projectId: activeProject.id,
       order: nextStartOrder + index,
-      startTime: 0,
-      endTime: 0,
+      startTime: timings[index]?.startTime ?? 0,
+      endTime: timings[index]?.endTime ?? 0,
       originalText: line,
       translatedText: '',
       enabled: true
@@ -165,7 +170,7 @@ export const EditorPage = (): JSX.Element => {
       updatedAt: new Date().toISOString()
     }));
     setIsAddLyricsModalOpen(false);
-    setProjectMessage(`${nextBlocks.length} bloques de letra original creados`);
+    setProjectMessage(`${nextBlocks.length} bloques creados con tiempos iniciales`);
   };
 
   const handleUpdateSubtitleBlock = (blockId: string, text: string): void => {

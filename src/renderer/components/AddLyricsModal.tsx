@@ -1,10 +1,16 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { splitSubtitleText, type TextSplitMode } from '../services/subtitleText';
+import {
+  getTimingFallbackMessage,
+  getTimingModeLabel,
+  type AutomaticTimingMode
+} from '../services/subtitleTiming';
 
 type AddLyricsModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onCreateBlocks: (lines: string[]) => void;
+  mediaDuration?: number;
+  onCreateBlocks: (lines: string[], timingMode: AutomaticTimingMode) => void;
 };
 
 const originalLanguages = [
@@ -18,15 +24,19 @@ const originalLanguages = [
 export const AddLyricsModal = ({
   isOpen,
   onClose,
+  mediaDuration,
   onCreateBlocks
 }: AddLyricsModalProps): JSX.Element | null => {
   const [originalText, setOriginalText] = useState('');
   const [language, setLanguage] = useState(originalLanguages[0].value);
   const [splitMode, setSplitMode] = useState<TextSplitMode>('lines');
+  const [timingMode, setTimingMode] = useState<AutomaticTimingMode>('fixed-2');
 
   const detectedBlocks = useMemo(() => {
     return splitSubtitleText(originalText, splitMode);
   }, [originalText, splitMode]);
+
+  const timingFallbackMessage = getTimingFallbackMessage(timingMode, mediaDuration);
 
   if (!isOpen) {
     return null;
@@ -39,10 +49,11 @@ export const AddLyricsModal = ({
       return;
     }
 
-    onCreateBlocks(detectedBlocks);
+    onCreateBlocks(detectedBlocks, timingMode);
     setOriginalText('');
     setLanguage(originalLanguages[0].value);
     setSplitMode('lines');
+    setTimingMode('fixed-2');
   };
 
   return (
@@ -96,6 +107,30 @@ export const AddLyricsModal = ({
               onChange={(event) => setOriginalText(event.target.value)}
             />
           </label>
+
+          <section className="lyrics-modal__timing" aria-label="Tiempos automaticos">
+            <div>
+              <h2>Tiempos automaticos</h2>
+              {timingFallbackMessage ? <p>{timingFallbackMessage}</p> : null}
+            </div>
+
+            <div className="lyrics-modal__timing-options">
+              {(['fixed-0-5', 'fixed-1', 'fixed-2', 'distribute', 'manual'] as AutomaticTimingMode[]).map(
+                (mode) => (
+                  <label key={mode} className="lyrics-modal__timing-option">
+                    <input
+                      type="radio"
+                      name="timingMode"
+                      value={mode}
+                      checked={timingMode === mode}
+                      onChange={() => setTimingMode(mode)}
+                    />
+                    <span>{getTimingModeLabel(mode)}</span>
+                  </label>
+                )
+              )}
+            </div>
+          </section>
 
           <div className="lyrics-modal__actions">
             <button type="button" className="lyrics-modal__secondary" onClick={onClose}>
