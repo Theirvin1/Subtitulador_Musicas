@@ -18,6 +18,7 @@ export type Project = {
   width: number;
   height: number;
   fps: number;
+  subtitleStyle: SubtitleStyle;
   createdAt: string;
   updatedAt: string;
 };
@@ -44,4 +45,20 @@ export type SubtitleBlock = {
   originalText: string;
   translatedText: string;
   enabled: boolean;
+};
+
+export type SubtitleStyle = {
+  fontOriginal: string;
+  fontTranslation: string;
+  sizeOriginal: number;
+  sizeTranslation: number;
+  colorOriginal: string;
+  colorTranslation: string;
+  borderSize: number;
+  shadow: boolean;
+  xOriginal: number;
+  yOriginal: number;
+  xTranslation: number;
+  yTranslation: number;
+  moveTogether: boolean;
 };
