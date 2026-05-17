@@ -1,3 +1,7 @@
+import {
+  SUBTITLE_STYLE_PRESETS,
+  type SubtitleStylePresetId
+} from '../../shared/constants/subtitleStyle';
 import { VIDEO_FORMAT_PRESETS } from '../../shared/constants/videoFormats';
 import type { Project, SubtitleStyle, VideoFormat } from '../../shared/types/project';
 import { getFileName } from '../services/fileUrl';
@@ -13,6 +17,7 @@ type SettingsPanelProps = {
   onSendSubtitlesTop: () => void;
   onSendSubtitlesBottom: () => void;
   onResetSubtitleStyle: () => void;
+  onApplySubtitleStylePreset: (presetId: SubtitleStylePresetId) => void;
 };
 
 export const SettingsPanel = ({
@@ -25,7 +30,8 @@ export const SettingsPanel = ({
   onCenterSubtitles,
   onSendSubtitlesTop,
   onSendSubtitlesBottom,
-  onResetSubtitleStyle
+  onResetSubtitleStyle,
+  onApplySubtitleStylePreset
 }: SettingsPanelProps): JSX.Element => {
   const subtitleStyle = activeProject?.subtitleStyle;
   const width = activeProject?.width ?? 1920;
@@ -110,6 +116,27 @@ export const SettingsPanel = ({
       </section>
 
       <section className="settings-panel__group">
+        <h2>Estilos de subtitulos</h2>
+        <div className="subtitle-style-presets">
+          {SUBTITLE_STYLE_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              className="subtitle-style-presets__option"
+              onClick={() => onApplySubtitleStylePreset(preset.id)}
+            >
+              <span className="subtitle-style-presets__swatch">
+                <i style={{ background: preset.previewColor }} />
+                <i style={{ background: preset.previewAccent }} />
+              </span>
+              <strong>{preset.label}</strong>
+              <small>{preset.description}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings-panel__group">
         <h2>Editor visual</h2>
         <div className="visual-editor">
           <label className="settings-panel__toggle">
@@ -131,6 +158,14 @@ export const SettingsPanel = ({
                 max="180"
                 value={subtitleStyle?.sizeOriginal ?? 56}
                 onChange={(event) => onChangeSubtitleStyle({ sizeOriginal: Number(event.target.value) })}
+              />
+            </label>
+            <label className="visual-editor__field">
+              <span>Color</span>
+              <input
+                type="color"
+                value={subtitleStyle?.colorOriginal ?? '#ffffff'}
+                onChange={(event) => onChangeSubtitleStyle({ colorOriginal: event.target.value })}
               />
             </label>
             <label className="visual-editor__field">
@@ -170,6 +205,16 @@ export const SettingsPanel = ({
               />
             </label>
             <label className="visual-editor__field">
+              <span>Color</span>
+              <input
+                type="color"
+                value={subtitleStyle?.colorTranslation ?? '#d3f7f2'}
+                onChange={(event) =>
+                  onChangeSubtitleStyle({ colorTranslation: event.target.value })
+                }
+              />
+            </label>
+            <label className="visual-editor__field">
               <span>X</span>
               <input
                 type="range"
@@ -194,6 +239,30 @@ export const SettingsPanel = ({
                   onChangeSubtitleStyle({ yTranslation: Number(event.target.value) })
                 }
               />
+            </label>
+          </div>
+
+          <div className="visual-editor__group">
+            <h3>Apariencia</h3>
+            <label className="visual-editor__field">
+              <span>Borde</span>
+              <input
+                type="range"
+                min="0"
+                max="8"
+                value={subtitleStyle?.borderSize ?? 2}
+                onChange={(event) =>
+                  onChangeSubtitleStyle({ borderSize: Number(event.target.value) })
+                }
+              />
+            </label>
+            <label className="settings-panel__toggle">
+              <input
+                type="checkbox"
+                checked={subtitleStyle?.shadow ?? true}
+                onChange={(event) => onChangeSubtitleStyle({ shadow: event.target.checked })}
+              />
+              <span>Sombra</span>
             </label>
           </div>
 
