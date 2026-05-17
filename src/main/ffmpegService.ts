@@ -3,10 +3,19 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { dialog } from 'electron';
-import type { ExportRequest, ExportResult } from '../shared/types/export';
+import type { ExportQuality, ExportRequest, ExportResult } from '../shared/types/export';
 import type { Project, SubtitleBlock, SubtitleStyle } from '../shared/types/project';
 
 const FFMPEG_BINARY = 'ffmpeg';
+
+const QUALITY_SETTINGS: Record<
+  ExportQuality,
+  { crf: string; preset: string; audioBitrate: string }
+> = {
+  MEDIUM: { crf: '23', preset: 'medium', audioBitrate: '160k' },
+  HIGH: { crf: '18', preset: 'slow', audioBitrate: '192k' },
+  MAXIMUM: { crf: '14', preset: 'slower', audioBitrate: '320k' }
+};
 
 const runFfmpeg = (args: string[], cwd?: string): Promise<void> => {
   return new Promise((resolveProcess, rejectProcess) => {
@@ -171,6 +180,14 @@ const sanitizeOutputName = (name: string): string => {
   return name.trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
 };
 
+const isExportQuality = (quality: unknown): quality is ExportQuality => {
+  return quality === 'MEDIUM' || quality === 'HIGH' || quality === 'MAXIMUM';
+};
+
+const isExportMode = (mode: unknown): mode is ExportRequest['mode'] => {
+  return mode === 'MP4' || mode === 'MP4_AND_MP3' || mode === 'MP3_ONLY';
+};
+
 const validateExportRequest = (request: unknown): ExportRequest => {
   if (!request || typeof request !== 'object') {
     throw new Error('Solicitud de exportacion invalida.');
@@ -179,6 +196,8 @@ const validateExportRequest = (request: unknown): ExportRequest => {
   const exportRequest = request as ExportRequest;
   const project = exportRequest.project;
   const blocks = project?.subtitleBlocks ?? [];
+  const mode = isExportMode(exportRequest.mode) ? exportRequest.mode : 'MP4';
+  const shouldExportMp4 = mode === 'MP4' || mode === 'MP4_AND_MP3';
 
   if (!project || typeof project !== 'object') {
     throw new Error('Proyecto invalido.');
@@ -188,15 +207,18 @@ const validateExportRequest = (request: unknown): ExportRequest => {
     throw new Error('Carga un audio o video antes de exportar.');
   }
 
-  if (!project.videoPath && !project.backgroundPath) {
+  if (shouldExportMp4 && !project.videoPath && !project.backgroundPath) {
     throw new Error('Carga una imagen de fondo para exportar solo con audio.');
   }
 
-  if (!Array.isArray(blocks) || blocks.filter((block) => block.enabled).length === 0) {
+  if (
+    shouldExportMp4 &&
+    (!Array.isArray(blocks) || blocks.filter((block) => block.enabled).length === 0)
+  ) {
     throw new Error('Agrega al menos un bloque de subtitulos activo.');
   }
 
-  const hasInvalidTiming = blocks
+  const hasInvalidTiming = shouldExportMp4 && blocks
     .filter((block) => block.enabled)
     .some((block) => block.startTime < 0 || block.endTime <= block.startTime);
 
@@ -215,7 +237,8 @@ const validateExportRequest = (request: unknown): ExportRequest => {
   return {
     ...exportRequest,
     fps: 30,
-    quality: 'HIGH',
+    quality: isExportQuality(exportRequest.quality) ? exportRequest.quality : 'HIGH',
+    mode,
     outputName: sanitizeOutputName(exportRequest.outputName)
   };
 };
@@ -240,17 +263,34 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
   const tempDirectory = join(tmpdir(), `submusic-export-${Date.now()}`);
   const assFileName = 'subtitles.ass';
   const assPath = join(tempDirectory, assFileName);
-  const outputPath = resolve(
+  const outputStem = exportRequest.outputName.replace(/\.(mp4|mp3)$/i, '');
+  const exportDirectory = resolve(
     exportRequest.outputDirectory,
-    `${exportRequest.outputName.replace(/\.mp4$/i, '')}.mp4`
+    outputStem
+  );
+  const mp4Path = resolve(
+    exportDirectory,
+    `${outputStem}.mp4`
+  );
+  const mp3Path = resolve(
+    exportDirectory,
+    `${outputStem}.mp3`
   );
   const enabledBlocks = exportRequest.project.subtitleBlocks.filter((block) => block.enabled);
+  const quality = QUALITY_SETTINGS[exportRequest.quality];
+  const shouldExportMp4 = exportRequest.mode === 'MP4' || exportRequest.mode === 'MP4_AND_MP3';
+  const shouldExportMp3 =
+    exportRequest.mode === 'MP3_ONLY' || exportRequest.mode === 'MP4_AND_MP3';
 
   mkdirSync(tempDirectory, { recursive: true });
-  writeFileSync(assPath, createAssFile(exportRequest.project, enabledBlocks), 'utf8');
+  mkdirSync(exportDirectory, { recursive: true });
+
+  if (shouldExportMp4) {
+    writeFileSync(assPath, createAssFile(exportRequest.project, enabledBlocks), 'utf8');
+  }
 
   const filter = createVideoFilter(exportRequest.project, assFileName);
-  const args = exportRequest.project.videoPath
+  const mp4Args = exportRequest.project.videoPath
     ? [
         '-y',
         '-i',
@@ -262,18 +302,18 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
         '-c:v',
         'libx264',
         '-preset',
-        'slow',
+        quality.preset,
         '-crf',
-        '18',
+        quality.crf,
         '-c:a',
         'aac',
         '-b:a',
-        '192k',
+        quality.audioBitrate,
         '-movflags',
         '+faststart',
         '-pix_fmt',
         'yuv420p',
-        outputPath
+        mp4Path
       ]
     : [
         '-y',
@@ -292,28 +332,50 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
         '-c:v',
         'libx264',
         '-preset',
-        'slow',
+        quality.preset,
         '-crf',
-        '18',
+        quality.crf,
         '-tune',
         'stillimage',
         '-c:a',
         'aac',
         '-b:a',
-        '192k',
+        quality.audioBitrate,
         '-shortest',
         '-movflags',
         '+faststart',
         '-pix_fmt',
         'yuv420p',
-        outputPath
+        mp4Path
       ];
+  const audioSource = exportRequest.project.videoPath ?? exportRequest.project.audioPath;
+  const mp3Args = [
+    '-y',
+    '-i',
+    audioSource ?? '',
+    '-vn',
+    '-c:a',
+    'libmp3lame',
+    '-b:a',
+    quality.audioBitrate,
+    mp3Path
+  ];
 
   try {
-    await runFfmpeg(args, tempDirectory);
+    if (shouldExportMp4) {
+      await runFfmpeg(mp4Args, tempDirectory);
+    }
+
+    if (shouldExportMp3) {
+      await runFfmpeg(mp3Args);
+    }
   } finally {
     rmSync(tempDirectory, { recursive: true, force: true });
   }
 
-  return { outputPath };
+  return {
+    outputDirectory: exportDirectory,
+    mp4Path: shouldExportMp4 ? mp4Path : undefined,
+    mp3Path: shouldExportMp3 ? mp3Path : undefined
+  };
 };

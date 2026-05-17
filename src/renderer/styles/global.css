@@ -1492,6 +1492,15 @@ video.preview-canvas__media {
   gap: 8px;
 }
 
+.export-modal__options {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #dce2eb;
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 10px;
+}
+
 .export-modal__folder button,
 .export-modal__actions button,
 .export-modal__header button {
@@ -1561,6 +1570,19 @@ video.preview-canvas__media {
 .export-modal__message.is-error {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.export-modal__outputs {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px 10px 28px;
+  border-radius: 8px;
+  background: #f6f8fb;
+  color: #293241;
+  font-size: 0.82rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .export-modal__actions {

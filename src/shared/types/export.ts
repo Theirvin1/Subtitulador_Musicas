@@ -1,15 +1,20 @@
 import type { Project } from './project';
 
-export type ExportQuality = 'HIGH';
+export type ExportQuality = 'MEDIUM' | 'HIGH' | 'MAXIMUM';
+
+export type ExportMode = 'MP4' | 'MP4_AND_MP3' | 'MP3_ONLY';
 
 export type ExportRequest = {
   project: Project;
   outputName: string;
   outputDirectory: string;
   quality: ExportQuality;
+  mode: ExportMode;
   fps: number;
 };
 
 export type ExportResult = {
-  outputPath: string;
+  outputDirectory: string;
+  mp4Path?: string;
+  mp3Path?: string;
 };

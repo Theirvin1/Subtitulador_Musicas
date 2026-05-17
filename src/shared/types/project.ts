@@ -66,4 +66,5 @@ export type SubtitleStyle = {
 
 export type AppSettings = {
   autoSaveEnabled: boolean;
+  lastExportDirectory?: string;
 };
