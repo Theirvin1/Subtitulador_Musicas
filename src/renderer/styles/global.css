@@ -687,6 +687,130 @@ video.preview-canvas__media {
   font-weight: 800;
 }
 
+.subtitle-card {
+  display: grid;
+  grid-template-columns: 120px minmax(180px, 0.9fr) minmax(260px, 1fr) minmax(260px, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid #dce2eb;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.subtitle-card.is-disabled {
+  opacity: 0.62;
+}
+
+.subtitle-card__header {
+  display: grid;
+  gap: 10px;
+}
+
+.subtitle-card__index {
+  display: grid;
+  gap: 3px;
+}
+
+.subtitle-card__index span,
+.subtitle-card__time-grid span,
+.subtitle-card__textarea span {
+  color: #687386;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.subtitle-card__index strong {
+  display: grid;
+  width: 42px;
+  height: 38px;
+  place-items: center;
+  border-radius: 7px;
+  background: #e5f3f1;
+  color: #174c47;
+  font-weight: 900;
+}
+
+.subtitle-card__header button,
+.subtitle-card__actions button {
+  min-height: 34px;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #293241;
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px #d6dce6;
+}
+
+.subtitle-card__header button:hover,
+.subtitle-card__actions button:hover {
+  background: #f4f7fb;
+}
+
+.subtitle-card__time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.subtitle-card__time-grid label,
+.subtitle-card__textarea {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.subtitle-card__time-grid input,
+.subtitle-card__textarea textarea {
+  width: 100%;
+  border: 1px solid #d5dce7;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #151c27;
+  outline: none;
+}
+
+.subtitle-card__time-grid input {
+  min-height: 36px;
+  padding: 0 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.subtitle-card__textarea textarea {
+  min-height: 74px;
+  resize: vertical;
+  padding: 8px 10px;
+  line-height: 1.4;
+}
+
+.subtitle-card__time-grid input:focus,
+.subtitle-card__textarea textarea:focus {
+  border-color: #74b9b1;
+  box-shadow: 0 0 0 3px rgba(36, 92, 87, 0.14);
+}
+
+.subtitle-card__actions {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subtitle-card__actions button {
+  padding: 0 10px;
+}
+
+.subtitle-card__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.subtitle-card__actions button:last-child {
+  color: #9a3412;
+}
+
 .subtitle-block {
   display: grid;
   grid-template-columns: 42px 106px minmax(0, 1fr);
@@ -1267,6 +1391,18 @@ video.preview-canvas__media {
 
   .media-loader__item button {
     width: 100%;
+  }
+
+  .subtitle-card {
+    grid-template-columns: 1fr;
+  }
+
+  .subtitle-card__actions {
+    grid-column: auto;
+  }
+
+  .subtitle-card__actions button {
+    flex: 1 1 120px;
   }
 
   .subtitle-block {
