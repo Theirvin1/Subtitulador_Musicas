@@ -7,18 +7,21 @@ type TopBarProps = {
   onNewProject: () => void;
   onOpenHistory: () => void;
   onSaveProject: () => void;
+  onExportProject: () => void;
 };
 
 export const TopBar = ({
   activeProjectName,
   onNewProject,
   onOpenHistory,
-  onSaveProject
+  onSaveProject,
+  onExportProject
 }: TopBarProps): JSX.Element => {
   const actionHandlers: Record<string, (() => void) | undefined> = {
     Nuevo: onNewProject,
     Historial: onOpenHistory,
-    Guardar: onSaveProject
+    Guardar: onSaveProject,
+    Exportar: onExportProject
   };
 
   return (

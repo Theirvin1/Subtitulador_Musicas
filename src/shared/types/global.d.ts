@@ -1,6 +1,7 @@
 export {};
 
 import type { MediaFile, MediaKind } from './media';
+import type { ExportRequest, ExportResult } from './export';
 import type { AppSettings, Project, ProjectSummary } from './project';
 
 declare global {
@@ -19,6 +20,11 @@ declare global {
       };
       media: {
         selectFile: (kind: MediaKind) => Promise<MediaFile | null>;
+      };
+      export: {
+        checkFfmpeg: () => Promise<boolean>;
+        selectOutputDirectory: () => Promise<string | null>;
+        mp4: (request: ExportRequest) => Promise<ExportResult>;
       };
     };
   }
