@@ -18,7 +18,11 @@ import {
   shiftSubtitleBlock
 } from '../services/subtitleBlocks';
 import { assignSubtitleTimings, type AutomaticTimingMode } from '../services/subtitleTiming';
-import { createDefaultSubtitleStyle } from '../../shared/constants/subtitleStyle';
+import {
+  createDefaultSubtitleStyle,
+  getSubtitleStylePreset,
+  type SubtitleStylePresetId
+} from '../../shared/constants/subtitleStyle';
 import { getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { MediaKind } from '../../shared/types/media';
 import type {
@@ -264,6 +268,21 @@ export const EditorPage = (): JSX.Element => {
       subtitleStyle: createDefaultSubtitleStyle(project.width, project.height),
       updatedAt: new Date().toISOString()
     }));
+  };
+
+  const handleApplySubtitleStylePreset = (presetId: SubtitleStylePresetId): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de aplicar estilos');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    updateActiveProject((project) => ({
+      ...project,
+      subtitleStyle: getSubtitleStylePreset(presetId, project.width, project.height),
+      updatedAt: new Date().toISOString()
+    }));
+    setProjectMessage('Estilo de subtitulos aplicado');
   };
 
   const handleOpenAddLyrics = (): void => {
@@ -568,6 +587,7 @@ export const EditorPage = (): JSX.Element => {
           onSendSubtitlesTop={handleSendSubtitlesTop}
           onSendSubtitlesBottom={handleSendSubtitlesBottom}
           onResetSubtitleStyle={handleResetSubtitleStyle}
+          onApplySubtitleStylePreset={handleApplySubtitleStylePreset}
         />
       </section>
 
