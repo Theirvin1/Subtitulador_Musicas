@@ -1,4 +1,4 @@
-import type { Project, ProjectSummary } from '../../shared/types/project';
+import type { AppSettings, Project, ProjectSummary } from '../../shared/types/project';
 
 export const projectStorage = {
   saveProject(project: Project): Promise<Project> {
@@ -12,5 +12,11 @@ export const projectStorage = {
   },
   deleteProject(projectId: string): Promise<boolean> {
     return window.subMusic.projects.delete(projectId);
+  },
+  getSettings(): Promise<AppSettings> {
+    return window.subMusic.settings.get();
+  },
+  updateSettings(settings: AppSettings): Promise<AppSettings> {
+    return window.subMusic.settings.update(settings);
   }
 };

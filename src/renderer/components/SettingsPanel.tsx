@@ -18,6 +18,8 @@ type SettingsPanelProps = {
   onSendSubtitlesBottom: () => void;
   onResetSubtitleStyle: () => void;
   onApplySubtitleStylePreset: (presetId: SubtitleStylePresetId) => void;
+  autoSaveEnabled: boolean;
+  onChangeAutoSave: (enabled: boolean) => void;
 };
 
 export const SettingsPanel = ({
@@ -31,7 +33,9 @@ export const SettingsPanel = ({
   onSendSubtitlesTop,
   onSendSubtitlesBottom,
   onResetSubtitleStyle,
-  onApplySubtitleStylePreset
+  onApplySubtitleStylePreset,
+  autoSaveEnabled,
+  onChangeAutoSave
 }: SettingsPanelProps): JSX.Element => {
   const subtitleStyle = activeProject?.subtitleStyle;
   const width = activeProject?.width ?? 1920;
@@ -80,6 +84,14 @@ export const SettingsPanel = ({
             <dd>{activeProject ? activeProject.fps : 'Sin definir'}</dd>
           </div>
         </dl>
+        <label className="settings-panel__toggle">
+          <input
+            type="checkbox"
+            checked={autoSaveEnabled}
+            onChange={(event) => onChangeAutoSave(event.target.checked)}
+          />
+          <span>Autoguardado activado</span>
+        </label>
       </section>
 
       <section className="settings-panel__group">

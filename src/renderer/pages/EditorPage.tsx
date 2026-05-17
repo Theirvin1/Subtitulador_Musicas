@@ -1,4 +1,4 @@
-import { useMemo, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { AddLyricsModal } from '../components/AddLyricsModal';
 import { HistoryModal } from '../components/HistoryModal';
 import { PlaybackControls } from '../components/PlaybackControls';
@@ -58,6 +58,33 @@ const clampSubtitleStyle = (
   yTranslation: clamp(style.yTranslation, 0, height)
 });
 
+type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error';
+
+const formatSaveStatus = (
+  status: SaveStatus,
+  lastSavedAt: Date | null,
+  errorMessage: string
+): string => {
+  if (status === 'saving') {
+    return 'Guardando...';
+  }
+
+  if (status === 'dirty') {
+    return 'Cambios sin guardar';
+  }
+
+  if (status === 'error') {
+    return errorMessage || 'Error al guardar';
+  }
+
+  if (!lastSavedAt) {
+    return 'Sin guardar';
+  }
+
+  const seconds = Math.max(0, Math.floor((Date.now() - lastSavedAt.getTime()) / 1000));
+  return `Guardado hace ${seconds} ${seconds === 1 ? 'segundo' : 'segundos'}`;
+};
+
 export const EditorPage = (): JSX.Element => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isAddLyricsModalOpen, setIsAddLyricsModalOpen] = useState(false);
@@ -66,6 +93,13 @@ export const EditorPage = (): JSX.Element => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [projectMessage, setProjectMessage] = useState('Proyecto en memoria');
   const [subtitleBlocks, setSubtitleBlocks] = useState<SubtitleBlock[]>([]);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState('');
+  const [saveStatusTick, setSaveStatusTick] = useState(0);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dirtyRevisionRef = useRef(0);
   const { activeProject, createNewProject, setActiveProject, updateActiveProject } =
     useActiveProject();
   const mediaUrl = toFileUrl(activeProject?.videoPath ?? activeProject?.audioPath);
@@ -81,6 +115,89 @@ export const EditorPage = (): JSX.Element => {
       ) ?? null
     );
   }, [currentTime, subtitleBlocks]);
+  const saveStatusLabel = useMemo(
+    () => formatSaveStatus(saveStatus, lastSavedAt, saveError),
+    [lastSavedAt, saveError, saveStatus, saveStatusTick]
+  );
+
+  useEffect(() => {
+    void projectStorage.getSettings().then((settings) => {
+      setAutoSaveEnabled(settings.autoSaveEnabled);
+    });
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSaveStatusTick((currentTick) => currentTick + 1);
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const markUnsaved = useCallback((): void => {
+    dirtyRevisionRef.current += 1;
+    setSaveError('');
+    setSaveStatus('dirty');
+  }, []);
+
+  const persistActiveProject = useCallback(
+    async (mode: 'manual' | 'auto'): Promise<void> => {
+      if (!activeProject) {
+        setProjectMessage('Crea un proyecto antes de guardar');
+        setIsNewProjectModalOpen(true);
+        return;
+      }
+
+      setSaveStatus('saving');
+      setSaveError('');
+      const saveRevision = dirtyRevisionRef.current;
+
+      try {
+        const savedProject = await projectStorage.saveProject({
+          ...activeProject,
+          subtitleBlocks
+        });
+
+        setLastSavedAt(new Date(savedProject.updatedAt));
+        if (dirtyRevisionRef.current === saveRevision) {
+          setActiveProject(savedProject);
+          setSubtitleBlocks(savedProject.subtitleBlocks);
+          setSaveStatus('saved');
+        } else {
+          setSaveStatus('dirty');
+        }
+        setProjectMessage(
+          mode === 'auto' ? 'Proyecto autoguardado' : 'Proyecto guardado localmente'
+        );
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : 'Error al guardar');
+        setSaveStatus('error');
+        setProjectMessage('Error al guardar el proyecto');
+      }
+    },
+    [activeProject, setActiveProject, subtitleBlocks]
+  );
+
+  useEffect(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    if (!autoSaveEnabled || saveStatus !== 'dirty' || !activeProject) {
+      return;
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      void persistActiveProject('auto');
+    }, 1200);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [activeProject, autoSaveEnabled, persistActiveProject, saveStatus, subtitleBlocks]);
 
   const refreshHistory = async (): Promise<void> => {
     setIsHistoryLoading(true);
@@ -98,15 +215,7 @@ export const EditorPage = (): JSX.Element => {
   };
 
   const handleSaveProject = async (): Promise<void> => {
-    if (!activeProject) {
-      setProjectMessage('Crea un proyecto antes de guardar');
-      setIsNewProjectModalOpen(true);
-      return;
-    }
-
-    const savedProject = await projectStorage.saveProject(activeProject);
-    setActiveProject(savedProject);
-    setProjectMessage('Proyecto guardado localmente');
+    await persistActiveProject('manual');
   };
 
   const handleOpenProject = async (projectId: string): Promise<void> => {
@@ -114,7 +223,11 @@ export const EditorPage = (): JSX.Element => {
 
     if (project) {
       setActiveProject(project);
-      setSubtitleBlocks([]);
+      setSubtitleBlocks(project.subtitleBlocks);
+      dirtyRevisionRef.current = 0;
+      setLastSavedAt(new Date(project.updatedAt));
+      setSaveStatus('saved');
+      setSaveError('');
       setProjectMessage('Proyecto cargado desde historial');
       setIsHistoryModalOpen(false);
     }
@@ -132,6 +245,9 @@ export const EditorPage = (): JSX.Element => {
     if (activeProject?.id === project.id) {
       setActiveProject(null);
       setSubtitleBlocks([]);
+      dirtyRevisionRef.current = 0;
+      setLastSavedAt(null);
+      setSaveStatus('saved');
       setProjectMessage('Proyecto eliminado');
     }
 
@@ -158,6 +274,7 @@ export const EditorPage = (): JSX.Element => {
       updatedAt: new Date().toISOString()
     }));
 
+    markUnsaved();
     setProjectMessage(`${mediaFile.name} cargado en el proyecto`);
   };
 
@@ -179,6 +296,7 @@ export const EditorPage = (): JSX.Element => {
       updatedAt: new Date().toISOString()
     }));
 
+    markUnsaved();
     setProjectMessage(`Formato actualizado a ${preset.shortLabel} (${preset.width}x${preset.height})`);
   };
 
@@ -215,6 +333,7 @@ export const EditorPage = (): JSX.Element => {
         updatedAt: new Date().toISOString()
       };
     });
+    markUnsaved();
   };
 
   const handleCenterSubtitles = (): void => {
@@ -268,6 +387,7 @@ export const EditorPage = (): JSX.Element => {
       subtitleStyle: createDefaultSubtitleStyle(project.width, project.height),
       updatedAt: new Date().toISOString()
     }));
+    markUnsaved();
   };
 
   const handleApplySubtitleStylePreset = (presetId: SubtitleStylePresetId): void => {
@@ -282,7 +402,16 @@ export const EditorPage = (): JSX.Element => {
       subtitleStyle: getSubtitleStylePreset(presetId, project.width, project.height),
       updatedAt: new Date().toISOString()
     }));
+    markUnsaved();
     setProjectMessage('Estilo de subtitulos aplicado');
+  };
+
+  const handleChangeAutoSave = (enabled: boolean): void => {
+    setAutoSaveEnabled(enabled);
+    void projectStorage.updateSettings({ autoSaveEnabled: enabled }).catch((error) => {
+      setSaveError(error instanceof Error ? error.message : 'Error al guardar configuracion');
+      setSaveStatus('error');
+    });
   };
 
   const handleOpenAddLyrics = (): void => {
@@ -335,6 +464,7 @@ export const EditorPage = (): JSX.Element => {
       ...project,
       updatedAt: new Date().toISOString()
     }));
+    markUnsaved();
     setIsAddLyricsModalOpen(false);
     setProjectMessage(
       translations
@@ -348,6 +478,7 @@ export const EditorPage = (): JSX.Element => {
       ...project,
       updatedAt: new Date().toISOString()
     }));
+    markUnsaved();
   };
 
   const handleChangeSubtitleBlock = (
@@ -539,7 +670,8 @@ export const EditorPage = (): JSX.Element => {
       />
 
       <div className="editor-page__status" role="status">
-        {projectMessage}
+        <span>{projectMessage}</span>
+        <strong className={`editor-page__save-status is-${saveStatus}`}>{saveStatusLabel}</strong>
       </div>
 
       <section className="editor-page__workspace" aria-label="Editor de video musical">
@@ -588,6 +720,8 @@ export const EditorPage = (): JSX.Element => {
           onSendSubtitlesBottom={handleSendSubtitlesBottom}
           onResetSubtitleStyle={handleResetSubtitleStyle}
           onApplySubtitleStylePreset={handleApplySubtitleStylePreset}
+          autoSaveEnabled={autoSaveEnabled}
+          onChangeAutoSave={handleChangeAutoSave}
         />
       </section>
 
@@ -597,6 +731,10 @@ export const EditorPage = (): JSX.Element => {
         onCreateProject={(input) => {
           createNewProject(input);
           setSubtitleBlocks([]);
+          dirtyRevisionRef.current = 1;
+          setLastSavedAt(null);
+          setSaveStatus('dirty');
+          setSaveError('');
           setProjectMessage('Proyecto creado en memoria');
           setIsNewProjectModalOpen(false);
         }}

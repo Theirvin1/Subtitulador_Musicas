@@ -1,6 +1,13 @@
 import type initSqlJs from 'sql.js';
 import { createDefaultSubtitleStyle } from '../../shared/constants/subtitleStyle';
-import type { Project, ProjectSummary, SubtitleStyle, VideoFormat } from '../../shared/types/project';
+import type {
+  AppSettings,
+  Project,
+  ProjectSummary,
+  SubtitleBlock,
+  SubtitleStyle,
+  VideoFormat
+} from '../../shared/types/project';
 
 type Database = initSqlJs.Database;
 type SqlValue = initSqlJs.SqlValue;
@@ -47,6 +54,24 @@ const isSubtitleStylePayload = (value: unknown): value is SubtitleStyle => {
   );
 };
 
+const isSubtitleBlockPayload = (value: unknown): value is SubtitleBlock => {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const block = value as SubtitleBlock;
+  return (
+    isString(block.id) &&
+    isString(block.projectId) &&
+    Number.isFinite(block.order) &&
+    Number.isFinite(block.startTime) &&
+    Number.isFinite(block.endTime) &&
+    isString(block.originalText) &&
+    isString(block.translatedText) &&
+    typeof block.enabled === 'boolean'
+  );
+};
+
 export const isProjectPayload = (value: unknown): value is Project => {
   if (!value || typeof value !== 'object') {
     return false;
@@ -61,6 +86,8 @@ export const isProjectPayload = (value: unknown): value is Project => {
     Number.isFinite(project.height) &&
     Number.isFinite(project.fps) &&
     isSubtitleStylePayload(project.subtitleStyle) &&
+    Array.isArray(project.subtitleBlocks) &&
+    project.subtitleBlocks.every(isSubtitleBlockPayload) &&
     isString(project.createdAt) &&
     isString(project.updatedAt)
   );
@@ -114,10 +141,22 @@ const mapProjectRow = (row: Record<string, SqlValue>): Project => {
     height,
     fps: Number(row.fps),
     subtitleStyle: mapSubtitleStyleRow(row, width, height),
+    subtitleBlocks: [],
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
 };
+
+const mapSubtitleBlockRow = (row: Record<string, SqlValue>): SubtitleBlock => ({
+  id: String(row.id),
+  projectId: String(row.project_id),
+  order: Number(row.position_index),
+  startTime: Number(row.start_time_ms) / 1000,
+  endTime: Number(row.end_time_ms) / 1000,
+  originalText: String(row.original_text ?? ''),
+  translatedText: String(row.translated_text ?? ''),
+  enabled: row.enabled === undefined ? true : row.enabled === 1 || row.enabled === '1'
+});
 
 const readRows = (database: Database, sql: string, params: Record<string, SqlValue> = {}): Project[] => {
   const statement = database.prepare(sql, params);
@@ -134,13 +173,108 @@ const readRows = (database: Database, sql: string, params: Record<string, SqlVal
   return rows;
 };
 
+const readSubtitleBlocks = (database: Database, projectId: string): SubtitleBlock[] => {
+  const statement = database.prepare(
+    `
+    SELECT
+      id,
+      project_id,
+      start_time_ms,
+      end_time_ms,
+      original_text,
+      translated_text,
+      position_index,
+      enabled
+    FROM subtitle_blocks
+    WHERE project_id = $projectId
+    ORDER BY position_index ASC
+    `,
+    { $projectId: projectId }
+  );
+  const blocks: SubtitleBlock[] = [];
+
+  try {
+    while (statement.step()) {
+      blocks.push(mapSubtitleBlockRow(statement.getAsObject()));
+    }
+  } finally {
+    statement.free();
+  }
+
+  return blocks;
+};
+
+const saveSubtitleBlocks = (
+  database: Database,
+  projectId: string,
+  blocks: SubtitleBlock[],
+  updatedAt: string
+): void => {
+  database.run('DELETE FROM subtitle_blocks WHERE project_id = $projectId', {
+    $projectId: projectId
+  });
+
+  blocks.forEach((block, index) => {
+    database.run(
+      `
+      INSERT INTO subtitle_blocks (
+        id,
+        project_id,
+        start_time_ms,
+        end_time_ms,
+        original_text,
+        translated_text,
+        position_index,
+        enabled,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        $id,
+        $projectId,
+        $startTimeMs,
+        $endTimeMs,
+        $originalText,
+        $translatedText,
+        $positionIndex,
+        $enabled,
+        $createdAt,
+        $updatedAt
+      )
+      `,
+      {
+        $id: block.id,
+        $projectId: projectId,
+        $startTimeMs: Math.round(Math.max(0, block.startTime) * 1000),
+        $endTimeMs: Math.round(Math.max(0, block.endTime) * 1000),
+        $originalText: block.originalText,
+        $translatedText: block.translatedText,
+        $positionIndex: index + 1,
+        $enabled: block.enabled ? 1 : 0,
+        $createdAt: updatedAt,
+        $updatedAt: updatedAt
+      }
+    );
+  });
+};
+
 export const saveProject = (database: Database, project: Project): Project => {
   const updatedProject: Project = {
     ...project,
     name: project.name.trim(),
+    subtitleBlocks: project.subtitleBlocks.map((block, index) => ({
+      ...block,
+      projectId: project.id,
+      order: index + 1,
+      startTime: Math.max(0, block.startTime),
+      endTime: Math.max(Math.max(0, block.startTime) + 0.001, block.endTime)
+    })),
     updatedAt: new Date().toISOString()
   };
 
+  database.run('BEGIN TRANSACTION');
+
+  try {
   database.run(
     `
     INSERT INTO projects (
@@ -283,6 +417,19 @@ export const saveProject = (database: Database, project: Project): Project => {
     }
   );
 
+  saveSubtitleBlocks(
+    database,
+    updatedProject.id,
+    updatedProject.subtitleBlocks,
+    updatedProject.updatedAt
+  );
+
+  database.run('COMMIT');
+  } catch (error) {
+    database.run('ROLLBACK');
+    throw error;
+  }
+
   return updatedProject;
 };
 
@@ -325,7 +472,7 @@ export const listProjects = (database: Database): ProjectSummary[] => {
 };
 
 export const openProject = (database: Database, projectId: string): Project | null => {
-  return (
+  const project =
     readRows(
       database,
       `
@@ -362,11 +509,64 @@ export const openProject = (database: Database, projectId: string): Project | nu
       LIMIT 1
       `,
       { $id: projectId }
-    )[0] ?? null
-  );
+    )[0] ?? null;
+
+  if (!project) {
+    return null;
+  }
+
+  return {
+    ...project,
+    subtitleBlocks: readSubtitleBlocks(database, project.id)
+  };
 };
 
 export const deleteProject = (database: Database, projectId: string): boolean => {
   database.run('DELETE FROM projects WHERE id = $id', { $id: projectId });
   return database.getRowsModified() > 0;
+};
+
+export const getAppSettings = (database: Database): AppSettings => {
+  const statement = database.prepare(
+    'SELECT value FROM app_settings WHERE key = $key LIMIT 1',
+    { $key: 'autoSaveEnabled' }
+  );
+
+  try {
+    if (statement.step()) {
+      const row = statement.getAsObject();
+      return {
+        autoSaveEnabled: row.value === 'true' || row.value === '1'
+      };
+    }
+  } finally {
+    statement.free();
+  }
+
+  return { autoSaveEnabled: false };
+};
+
+export const updateAppSettings = (
+  database: Database,
+  settings: AppSettings
+): AppSettings => {
+  const now = new Date().toISOString();
+
+  database.run(
+    `
+    INSERT INTO app_settings (key, value, created_at, updated_at)
+    VALUES ($key, $value, $createdAt, $updatedAt)
+    ON CONFLICT(key) DO UPDATE SET
+      value = excluded.value,
+      updated_at = excluded.updated_at
+    `,
+    {
+      $key: 'autoSaveEnabled',
+      $value: settings.autoSaveEnabled ? 'true' : 'false',
+      $createdAt: now,
+      $updatedAt: now
+    }
+  );
+
+  return settings;
 };
