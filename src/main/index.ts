@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import { join } from 'node:path';
+import { createDatabase } from './database';
 import { registerIpcHandlers } from './ipc';
 import { APP_TITLE } from '../shared/constants/app';
 
@@ -34,8 +35,10 @@ const createMainWindow = (): BrowserWindow => {
   return mainWindow;
 };
 
-app.whenReady().then(() => {
-  registerIpcHandlers();
+app.whenReady().then(async () => {
+  const database = await createDatabase(app.getPath('userData'), app.getAppPath());
+
+  registerIpcHandlers(database);
   createMainWindow();
 
   app.on('activate', () => {

@@ -1,0 +1,52 @@
+export const DATABASE_SCHEMA = `
+PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS projects (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  audio_path TEXT,
+  video_path TEXT,
+  background_path TEXT,
+  cover_path TEXT,
+  export_base_path TEXT,
+  video_format TEXT NOT NULL,
+  width INTEGER NOT NULL,
+  height INTEGER NOT NULL,
+  fps INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS subtitle_blocks (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  start_time_ms INTEGER NOT NULL DEFAULT 0,
+  end_time_ms INTEGER NOT NULL DEFAULT 0,
+  original_text TEXT NOT NULL DEFAULT '',
+  translated_text TEXT NOT NULL DEFAULT '',
+  position_index INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS subtitle_styles (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL UNIQUE,
+  font_family TEXT NOT NULL DEFAULT 'Inter',
+  font_size INTEGER NOT NULL DEFAULT 42,
+  primary_color TEXT NOT NULL DEFAULT '#ffffff',
+  secondary_color TEXT NOT NULL DEFAULT '#d3f7f2',
+  background_color TEXT NOT NULL DEFAULT 'rgba(5, 9, 14, 0.68)',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+`;

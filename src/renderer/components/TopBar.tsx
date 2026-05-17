@@ -5,9 +5,22 @@ const actions = ['Nuevo', 'Abrir', 'Historial', 'Guardar', 'Exportar'];
 type TopBarProps = {
   activeProjectName?: string;
   onNewProject: () => void;
+  onOpenHistory: () => void;
+  onSaveProject: () => void;
 };
 
-export const TopBar = ({ activeProjectName, onNewProject }: TopBarProps): JSX.Element => {
+export const TopBar = ({
+  activeProjectName,
+  onNewProject,
+  onOpenHistory,
+  onSaveProject
+}: TopBarProps): JSX.Element => {
+  const actionHandlers: Record<string, (() => void) | undefined> = {
+    Nuevo: onNewProject,
+    Historial: onOpenHistory,
+    Guardar: onSaveProject
+  };
+
   return (
     <header className="top-bar">
       <div className="top-bar__brand">
@@ -29,7 +42,7 @@ export const TopBar = ({ activeProjectName, onNewProject }: TopBarProps): JSX.El
             key={action}
             type="button"
             className="top-bar__button"
-            onClick={action === 'Nuevo' ? onNewProject : undefined}
+            onClick={actionHandlers[action]}
           >
             {action}
           </button>

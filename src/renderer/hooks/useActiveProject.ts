@@ -10,6 +10,7 @@ type CreateProjectInput = {
 type ActiveProjectState = {
   activeProject: Project | null;
   createNewProject: (input: CreateProjectInput) => Project;
+  setActiveProject: (project: Project | null) => void;
 };
 
 const createProjectId = (): string => {
@@ -46,6 +47,7 @@ export const useActiveProject = (): ActiveProjectState => {
 
   return {
     activeProject,
-    createNewProject
+    createNewProject,
+    setActiveProject
   };
 };
