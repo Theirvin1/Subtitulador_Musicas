@@ -148,7 +148,21 @@ export const EditorPage = (): JSX.Element => {
     setIsAddLyricsModalOpen(true);
   };
 
-  const handleCreateSubtitleBlocks = (lines: string[], timingMode: AutomaticTimingMode): void => {
+  const applyTranslationsToBlocks = (translations: string[]): void => {
+    setSubtitleBlocks((currentBlocks) =>
+      currentBlocks.map((block, index) => ({
+        ...block,
+        translatedText: translations[index] ?? block.translatedText
+      }))
+    );
+    touchProject();
+  };
+
+  const handleCreateSubtitleBlocks = (
+    lines: string[],
+    timingMode: AutomaticTimingMode,
+    translations?: string[]
+  ): void => {
     if (!activeProject) {
       return;
     }
@@ -165,7 +179,7 @@ export const EditorPage = (): JSX.Element => {
       startTime: timings[index]?.startTime ?? 0,
       endTime: timings[index]?.endTime ?? 0,
       originalText: line,
-      translatedText: '',
+      translatedText: translations?.[index] ?? '',
       enabled: true
     }));
 
@@ -175,7 +189,11 @@ export const EditorPage = (): JSX.Element => {
       updatedAt: new Date().toISOString()
     }));
     setIsAddLyricsModalOpen(false);
-    setProjectMessage(`${nextBlocks.length} bloques creados con tiempos iniciales`);
+    setProjectMessage(
+      translations
+        ? `${nextBlocks.length} bloques creados con traduccion`
+        : `${nextBlocks.length} bloques creados con tiempos iniciales`
+    );
   };
 
   const touchProject = (): void => {
@@ -342,6 +360,24 @@ export const EditorPage = (): JSX.Element => {
     touchProject();
   };
 
+  const handleApplyTranslation = (translations: string[]): void => {
+    if (subtitleBlocks.length === 0) {
+      setProjectMessage('Crea bloques originales antes de agregar traduccion');
+      return;
+    }
+
+    if (translations.length !== subtitleBlocks.length) {
+      setProjectMessage(
+        `La traduccion tiene ${translations.length} bloques, pero el texto original tiene ${subtitleBlocks.length}`
+      );
+      return;
+    }
+
+    applyTranslationsToBlocks(translations);
+    setIsAddLyricsModalOpen(false);
+    setProjectMessage(`${translations.length} bloques traducidos actualizados`);
+  };
+
   return (
     <main className="editor-page">
       <TopBar
@@ -404,7 +440,9 @@ export const EditorPage = (): JSX.Element => {
       <AddLyricsModal
         isOpen={isAddLyricsModalOpen}
         onClose={() => setIsAddLyricsModalOpen(false)}
+        existingOriginalLines={subtitleBlocks.map((block) => block.originalText)}
         onCreateBlocks={handleCreateSubtitleBlocks}
+        onApplyTranslation={handleApplyTranslation}
       />
 
       <HistoryModal
