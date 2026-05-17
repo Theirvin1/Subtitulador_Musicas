@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { ExportMode, ExportQuality } from '../../shared/types/export';
 import type { Project, SubtitleBlock } from '../../shared/types/project';
 import { exportService } from '../services/exportService';
+import { projectStorage } from '../services/projectStorage';
 
 type ExportStatus = 'idle' | 'preparing' | 'exporting' | 'finished' | 'error';
 
@@ -23,9 +25,12 @@ export const ExportModal = ({
 }: ExportModalProps): JSX.Element | null => {
   const [videoName, setVideoName] = useState('');
   const [outputDirectory, setOutputDirectory] = useState('');
+  const [quality, setQuality] = useState<ExportQuality>('HIGH');
+  const [exportMp3, setExportMp3] = useState(false);
+  const [mp3Only, setMp3Only] = useState(false);
   const [status, setStatus] = useState<ExportStatus>('idle');
   const [message, setMessage] = useState('');
-  const [outputPath, setOutputPath] = useState('');
+  const [outputPaths, setOutputPaths] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -35,7 +40,12 @@ export const ExportModal = ({
     setVideoName(getDefaultName(project));
     setStatus('idle');
     setMessage('');
-    setOutputPath('');
+    setOutputPaths([]);
+    void projectStorage.getSettings().then((settings) => {
+      if (settings.lastExportDirectory) {
+        setOutputDirectory(settings.lastExportDirectory);
+      }
+    });
   }, [isOpen, project]);
 
   const validationError = useMemo(() => {
@@ -47,15 +57,16 @@ export const ExportModal = ({
       return 'Carga un audio o video antes de exportar.';
     }
 
-    if (!project.videoPath && !project.backgroundPath) {
+    if (!mp3Only && !project.videoPath && !project.backgroundPath) {
       return 'Carga una imagen de fondo para exportar solo con audio.';
     }
 
-    if (!subtitleBlocks.some((block) => block.enabled)) {
+    if (!mp3Only && !subtitleBlocks.some((block) => block.enabled)) {
       return 'Agrega al menos un bloque de subtitulos activo.';
     }
 
     if (
+      !mp3Only &&
       subtitleBlocks
         .filter((block) => block.enabled)
         .some((block) => block.startTime < 0 || block.endTime <= block.startTime)
@@ -72,7 +83,7 @@ export const ExportModal = ({
     }
 
     return '';
-  }, [outputDirectory, project, subtitleBlocks, videoName]);
+  }, [mp3Only, outputDirectory, project, subtitleBlocks, videoName]);
 
   if (!isOpen) {
     return null;
@@ -83,6 +94,11 @@ export const ExportModal = ({
 
     if (directory) {
       setOutputDirectory(directory);
+      const currentSettings = await projectStorage.getSettings();
+      void projectStorage.updateSettings({
+        autoSaveEnabled: currentSettings.autoSaveEnabled,
+        lastExportDirectory: directory
+      });
     }
   };
 
@@ -104,7 +120,15 @@ export const ExportModal = ({
       }
 
       setStatus('exporting');
-      setMessage('Exportando MP4 con subtitulos ASS');
+      setMessage(
+        mp3Only
+          ? 'Exportando MP3'
+          : exportMp3
+            ? 'Exportando MP4 y MP3'
+            : 'Exportando MP4 con subtitulos ASS'
+      );
+
+      const mode: ExportMode = mp3Only ? 'MP3_ONLY' : exportMp3 ? 'MP4_AND_MP3' : 'MP4';
 
       const result = await exportService.exportMp4({
         project: {
@@ -113,13 +137,16 @@ export const ExportModal = ({
         },
         outputName: videoName,
         outputDirectory,
-        quality: 'HIGH',
+        quality,
+        mode,
         fps: 30
       });
 
-      setOutputPath(result.outputPath);
+      setOutputPaths(
+        [result.mp4Path, result.mp3Path].filter((path): path is string => Boolean(path))
+      );
       setStatus('finished');
-      setMessage('Finalizado');
+      setMessage(`Finalizado en ${result.outputDirectory}`);
     } catch (error) {
       setStatus('error');
       setMessage(error instanceof Error ? error.message : 'Error al exportar');
@@ -130,11 +157,11 @@ export const ExportModal = ({
 
   return (
     <div className="modal-backdrop" role="presentation">
-      <section className="export-modal" role="dialog" aria-modal="true" aria-label="Exportar MP4">
+      <section className="export-modal" role="dialog" aria-modal="true" aria-label="Exportar">
         <header className="export-modal__header">
           <div>
-            <p>Exportar MP4</p>
-            <span>Subtitulos ASS quemados en pantalla</span>
+            <p>Exportar</p>
+            <span>MP4 con ASS y audio MP3 opcional</span>
           </div>
           <button type="button" onClick={onClose} disabled={isBusy}>
             Cerrar
@@ -153,7 +180,7 @@ export const ExportModal = ({
           </label>
 
           <label className="new-project-modal__field">
-            <span>Carpeta de salida</span>
+            <span>Carpeta base de salida</span>
             <div className="export-modal__folder">
               <input value={outputDirectory} readOnly placeholder="Selecciona una carpeta" />
               <button type="button" onClick={() => void handleSelectDirectory()} disabled={isBusy}>
@@ -162,18 +189,63 @@ export const ExportModal = ({
             </div>
           </label>
 
+          <section className="export-modal__options" aria-label="Opciones de exportacion">
+            <label className="settings-panel__toggle">
+              <input
+                type="checkbox"
+                checked={exportMp3}
+                disabled={isBusy || mp3Only}
+                onChange={(event) => setExportMp3(event.target.checked)}
+              />
+              <span>Exportar tambien como MP3</span>
+            </label>
+            <label className="settings-panel__toggle">
+              <input
+                type="checkbox"
+                checked={mp3Only}
+                disabled={isBusy}
+                onChange={(event) => {
+                  setMp3Only(event.target.checked);
+                  if (event.target.checked) {
+                    setExportMp3(false);
+                  }
+                }}
+              />
+              <span>Exportar solo MP3</span>
+            </label>
+          </section>
+
+          <label className="new-project-modal__field">
+            <span>Calidad</span>
+            <select
+              value={quality}
+              onChange={(event) => setQuality(event.target.value as ExportQuality)}
+              disabled={isBusy}
+            >
+              <option value="MEDIUM">Media</option>
+              <option value="HIGH">Alta</option>
+              <option value="MAXIMUM">Maxima</option>
+            </select>
+          </label>
+
           <dl className="export-modal__summary">
             <div>
               <dt>Calidad</dt>
-              <dd>Alta</dd>
+              <dd>
+                {quality === 'MEDIUM'
+                  ? 'Media'
+                  : quality === 'MAXIMUM'
+                    ? 'Maxima'
+                    : 'Alta'}
+              </dd>
             </div>
             <div>
               <dt>FPS</dt>
               <dd>30</dd>
             </div>
             <div>
-              <dt>Resolucion</dt>
-              <dd>{project ? `${project.width}x${project.height}` : 'Sin proyecto'}</dd>
+              <dt>Salida</dt>
+              <dd>{mp3Only ? 'MP3' : exportMp3 ? 'MP4 + MP3' : 'MP4'}</dd>
             </div>
           </dl>
 
@@ -183,8 +255,16 @@ export const ExportModal = ({
 
           {message ? (
             <p className={`export-modal__message is-${status}`}>
-              {outputPath ? `${message}: ${outputPath}` : message}
+              {message}
             </p>
+          ) : null}
+
+          {outputPaths.length > 0 ? (
+            <ul className="export-modal__outputs">
+              {outputPaths.map((path) => (
+                <li key={path}>{path}</li>
+              ))}
+            </ul>
           ) : null}
 
           <div className="export-modal__actions">
@@ -196,7 +276,7 @@ export const ExportModal = ({
               onClick={() => void handleExport()}
               disabled={isBusy || Boolean(validationError)}
             >
-              {isBusy ? 'Exportando...' : 'Exportar MP4'}
+              {isBusy ? 'Exportando...' : mp3Only ? 'Exportar MP3' : 'Exportar'}
             </button>
           </div>
         </div>

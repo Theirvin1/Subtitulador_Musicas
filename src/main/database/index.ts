@@ -91,7 +91,9 @@ export const createDatabase = async (
       if (
         !settings ||
         typeof settings !== 'object' ||
-        typeof (settings as AppSettings).autoSaveEnabled !== 'boolean'
+        typeof (settings as AppSettings).autoSaveEnabled !== 'boolean' ||
+        ((settings as AppSettings).lastExportDirectory !== undefined &&
+          typeof (settings as AppSettings).lastExportDirectory !== 'string')
       ) {
         throw new Error('Invalid settings payload.');
       }

@@ -527,23 +527,26 @@ export const deleteProject = (database: Database, projectId: string): boolean =>
 };
 
 export const getAppSettings = (database: Database): AppSettings => {
-  const statement = database.prepare(
-    'SELECT value FROM app_settings WHERE key = $key LIMIT 1',
-    { $key: 'autoSaveEnabled' }
-  );
+  const statement = database.prepare('SELECT key, value FROM app_settings');
+  const settings: AppSettings = { autoSaveEnabled: false };
 
   try {
-    if (statement.step()) {
+    while (statement.step()) {
       const row = statement.getAsObject();
-      return {
-        autoSaveEnabled: row.value === 'true' || row.value === '1'
-      };
+
+      if (row.key === 'autoSaveEnabled') {
+        settings.autoSaveEnabled = row.value === 'true' || row.value === '1';
+      }
+
+      if (row.key === 'lastExportDirectory' && isString(row.value)) {
+        settings.lastExportDirectory = row.value;
+      }
     }
   } finally {
     statement.free();
   }
 
-  return { autoSaveEnabled: false };
+  return settings;
 };
 
 export const updateAppSettings = (
@@ -551,22 +554,29 @@ export const updateAppSettings = (
   settings: AppSettings
 ): AppSettings => {
   const now = new Date().toISOString();
+  const saveSetting = (key: string, value: string): void => {
+    database.run(
+      `
+      INSERT INTO app_settings (key, value, created_at, updated_at)
+      VALUES ($key, $value, $createdAt, $updatedAt)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = excluded.updated_at
+      `,
+      {
+        $key: key,
+        $value: value,
+        $createdAt: now,
+        $updatedAt: now
+      }
+    );
+  };
 
-  database.run(
-    `
-    INSERT INTO app_settings (key, value, created_at, updated_at)
-    VALUES ($key, $value, $createdAt, $updatedAt)
-    ON CONFLICT(key) DO UPDATE SET
-      value = excluded.value,
-      updated_at = excluded.updated_at
-    `,
-    {
-      $key: 'autoSaveEnabled',
-      $value: settings.autoSaveEnabled ? 'true' : 'false',
-      $createdAt: now,
-      $updatedAt: now
-    }
-  );
+  saveSetting('autoSaveEnabled', settings.autoSaveEnabled ? 'true' : 'false');
+
+  if (settings.lastExportDirectory !== undefined) {
+    saveSetting('lastExportDirectory', settings.lastExportDirectory);
+  }
 
   return settings;
 };
