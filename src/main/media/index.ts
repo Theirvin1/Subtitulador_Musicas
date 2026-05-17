@@ -14,11 +14,15 @@ const MEDIA_FILTERS: Record<MediaKind, Electron.FileFilter> = {
   background: {
     name: 'Imagenes',
     extensions: ['jpg', 'jpeg', 'png', 'webp']
+  },
+  cover: {
+    name: 'Portada',
+    extensions: ['jpg', 'jpeg', 'png', 'webp']
   }
 };
 
 const isMediaKind = (value: unknown): value is MediaKind => {
-  return value === 'audio' || value === 'video' || value === 'background';
+  return value === 'audio' || value === 'video' || value === 'background' || value === 'cover';
 };
 
 const isAllowedExtension = (kind: MediaKind, filePath: string): boolean => {

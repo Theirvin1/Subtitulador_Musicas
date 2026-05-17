@@ -1,4 +1,4 @@
-export type MediaKind = 'audio' | 'video' | 'background';
+export type MediaKind = 'audio' | 'video' | 'background' | 'cover';
 
 export type MediaFile = {
   kind: MediaKind;

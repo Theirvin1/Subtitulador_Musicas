@@ -1,6 +1,11 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/constants/ipc';
-import { checkFfmpegAvailable, exportMp4, selectOutputDirectory } from '../ffmpegService';
+import {
+  checkFfmpegAvailable,
+  exportMp4,
+  extractCoverFrame,
+  selectOutputDirectory
+} from '../ffmpegService';
 import { selectMediaFile } from '../media';
 import type { AppDatabase } from '../database';
 
@@ -39,6 +44,10 @@ export const registerIpcHandlers = (database: AppDatabase): void => {
 
   ipcMain.handle(IPC_CHANNELS.export.selectOutputDirectory, () => {
     return selectOutputDirectory();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.export.extractCoverFrame, (_event, request: unknown) => {
+    return extractCoverFrame(request);
   });
 
   ipcMain.handle(IPC_CHANNELS.export.mp4, (_event, request: unknown) => {

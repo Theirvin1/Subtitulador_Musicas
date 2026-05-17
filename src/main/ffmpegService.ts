@@ -1,9 +1,15 @@
 import { spawn } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import { dialog } from 'electron';
-import type { ExportQuality, ExportRequest, ExportResult } from '../shared/types/export';
+import { app, dialog } from 'electron';
+import type {
+  ExportQuality,
+  ExportRequest,
+  ExportResult,
+  ExtractCoverFrameRequest,
+  ExtractCoverFrameResult
+} from '../shared/types/export';
 import type { Project, SubtitleBlock, SubtitleStyle } from '../shared/types/project';
 
 const FFMPEG_BINARY = 'ffmpeg';
@@ -180,6 +186,10 @@ const sanitizeOutputName = (name: string): string => {
   return name.trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
 };
 
+const getProjectCoverDirectory = (projectId: string): string => {
+  return join(app.getPath('userData'), 'covers', sanitizeOutputName(projectId));
+};
+
 const isExportQuality = (quality: unknown): quality is ExportQuality => {
   return quality === 'MEDIUM' || quality === 'HIGH' || quality === 'MAXIMUM';
 };
@@ -252,6 +262,53 @@ const createVideoFilter = (project: Project, assFileName: string): string => {
   ].join(',');
 };
 
+const writeExportCover = async (coverPath: string, exportDirectory: string): Promise<string> => {
+  const outputCoverPath = resolve(exportDirectory, 'portada.png');
+
+  if (coverPath.toLowerCase().endsWith('.png')) {
+    copyFileSync(coverPath, outputCoverPath);
+    return outputCoverPath;
+  }
+
+  await runFfmpeg(['-y', '-i', coverPath, '-frames:v', '1', outputCoverPath]);
+  return outputCoverPath;
+};
+
+export const extractCoverFrame = async (
+  request: unknown
+): Promise<ExtractCoverFrameResult> => {
+  if (!request || typeof request !== 'object') {
+    throw new Error('Solicitud de portada invalida.');
+  }
+
+  const frameRequest = request as ExtractCoverFrameRequest;
+  if (!frameRequest.projectId || !frameRequest.videoPath) {
+    throw new Error('Carga un video antes de seleccionar un frame como portada.');
+  }
+
+  const hasFfmpeg = await checkFfmpegAvailable();
+  if (!hasFfmpeg) {
+    throw new Error('FFmpeg no esta disponible en el sistema.');
+  }
+
+  const coverDirectory = getProjectCoverDirectory(frameRequest.projectId);
+  mkdirSync(coverDirectory, { recursive: true });
+
+  const coverPath = join(coverDirectory, `cover-${Date.now()}.png`);
+  await runFfmpeg([
+    '-y',
+    '-ss',
+    String(Math.max(0, frameRequest.currentTime)),
+    '-i',
+    frameRequest.videoPath,
+    '-frames:v',
+    '1',
+    coverPath
+  ]);
+
+  return { coverPath };
+};
+
 export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
   const exportRequest = validateExportRequest(request);
   const hasFfmpeg = await checkFfmpegAvailable();
@@ -276,6 +333,7 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
     exportDirectory,
     `${outputStem}.mp3`
   );
+  let coverPath: string | undefined;
   const enabledBlocks = exportRequest.project.subtitleBlocks.filter((block) => block.enabled);
   const quality = QUALITY_SETTINGS[exportRequest.quality];
   const shouldExportMp4 = exportRequest.mode === 'MP4' || exportRequest.mode === 'MP4_AND_MP3';
@@ -369,6 +427,10 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
     if (shouldExportMp3) {
       await runFfmpeg(mp3Args);
     }
+
+    if (exportRequest.project.coverPath) {
+      coverPath = await writeExportCover(exportRequest.project.coverPath, exportDirectory);
+    }
   } finally {
     rmSync(tempDirectory, { recursive: true, force: true });
   }
@@ -376,6 +438,7 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
   return {
     outputDirectory: exportDirectory,
     mp4Path: shouldExportMp4 ? mp4Path : undefined,
-    mp3Path: shouldExportMp3 ? mp3Path : undefined
+    mp3Path: shouldExportMp3 ? mp3Path : undefined,
+    coverPath
   };
 };
