@@ -1,14 +1,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import initSqlJs from 'sql.js';
-import type { Project, ProjectSummary } from '../../shared/types/project';
+import type { AppSettings, Project, ProjectSummary } from '../../shared/types/project';
 import { DATABASE_MIGRATIONS, DATABASE_SCHEMA } from './schema';
 import {
   deleteProject,
+  getAppSettings,
   isProjectPayload,
   listProjects,
   openProject,
-  saveProject
+  saveProject,
+  updateAppSettings
 } from './projectRepository';
 
 type Database = initSqlJs.Database;
@@ -18,6 +20,8 @@ export type AppDatabase = {
   listProjects: () => ProjectSummary[];
   openProject: (projectId: unknown) => Project | null;
   deleteProject: (projectId: unknown) => boolean;
+  getSettings: () => AppSettings;
+  updateSettings: (settings: unknown) => AppSettings;
 };
 
 const DATABASE_FILE_NAME = 'submusic-studio.sqlite';
@@ -79,6 +83,22 @@ export const createDatabase = async (
       const deleted = deleteProject(database, projectId);
       persistDatabase(database, databasePath);
       return deleted;
+    },
+    getSettings() {
+      return getAppSettings(database);
+    },
+    updateSettings(settings) {
+      if (
+        !settings ||
+        typeof settings !== 'object' ||
+        typeof (settings as AppSettings).autoSaveEnabled !== 'boolean'
+      ) {
+        throw new Error('Invalid settings payload.');
+      }
+
+      const updatedSettings = updateAppSettings(database, settings as AppSettings);
+      persistDatabase(database, databasePath);
+      return updatedSettings;
     }
   };
 };

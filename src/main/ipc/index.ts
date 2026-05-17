@@ -20,6 +20,14 @@ export const registerIpcHandlers = (database: AppDatabase): void => {
     return database.deleteProject(projectId);
   });
 
+  ipcMain.handle(IPC_CHANNELS.settings.get, () => {
+    return database.getSettings();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.settings.update, (_event, settings: unknown) => {
+    return database.updateSettings(settings);
+  });
+
   ipcMain.handle(IPC_CHANNELS.media.selectFile, (_event, kind: unknown) => {
     return selectMediaFile(kind);
   });

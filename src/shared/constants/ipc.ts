@@ -5,6 +5,10 @@ export const IPC_CHANNELS = {
     open: 'projects:open',
     delete: 'projects:delete'
   },
+  settings: {
+    get: 'settings:get',
+    update: 'settings:update'
+  },
   media: {
     selectFile: 'media:select-file'
   }

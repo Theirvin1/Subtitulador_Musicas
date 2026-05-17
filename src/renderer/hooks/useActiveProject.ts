@@ -40,6 +40,7 @@ export const useActiveProject = (): ActiveProjectState => {
       height: preset.height,
       fps: DEFAULT_FPS,
       subtitleStyle: createDefaultSubtitleStyle(preset.width, preset.height),
+      subtitleBlocks: [],
       createdAt: now,
       updatedAt: now
     };

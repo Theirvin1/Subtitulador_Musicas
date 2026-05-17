@@ -19,6 +19,7 @@ export type Project = {
   height: number;
   fps: number;
   subtitleStyle: SubtitleStyle;
+  subtitleBlocks: SubtitleBlock[];
   createdAt: string;
   updatedAt: string;
 };
@@ -61,4 +62,8 @@ export type SubtitleStyle = {
   xTranslation: number;
   yTranslation: number;
   moveTogether: boolean;
+};
+
+export type AppSettings = {
+  autoSaveEnabled: boolean;
 };
