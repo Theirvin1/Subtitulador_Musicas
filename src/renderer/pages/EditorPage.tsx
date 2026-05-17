@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AddLyricsModal } from '../components/AddLyricsModal';
 import { HistoryModal } from '../components/HistoryModal';
 import { PlaybackControls } from '../components/PlaybackControls';
 import { NewProjectModal } from '../components/NewProjectModal';
@@ -11,14 +12,24 @@ import { mediaService } from '../services/mediaService';
 import { projectStorage } from '../services/projectStorage';
 import { getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { MediaKind } from '../../shared/types/media';
-import type { ProjectSummary, VideoFormat } from '../../shared/types/project';
+import type { ProjectSummary, SubtitleBlock, VideoFormat } from '../../shared/types/project';
+
+const createSubtitleBlockId = (): string => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `subtitle-block-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
 
 export const EditorPage = (): JSX.Element => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [isAddLyricsModalOpen, setIsAddLyricsModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [savedProjects, setSavedProjects] = useState<ProjectSummary[]>([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [projectMessage, setProjectMessage] = useState('Proyecto en memoria');
+  const [subtitleBlocks, setSubtitleBlocks] = useState<SubtitleBlock[]>([]);
   const { activeProject, createNewProject, setActiveProject, updateActiveProject } =
     useActiveProject();
 
@@ -54,6 +65,7 @@ export const EditorPage = (): JSX.Element => {
 
     if (project) {
       setActiveProject(project);
+      setSubtitleBlocks([]);
       setProjectMessage('Proyecto cargado desde historial');
       setIsHistoryModalOpen(false);
     }
@@ -70,6 +82,7 @@ export const EditorPage = (): JSX.Element => {
 
     if (activeProject?.id === project.id) {
       setActiveProject(null);
+      setSubtitleBlocks([]);
       setProjectMessage('Proyecto eliminado');
     }
 
@@ -119,6 +132,59 @@ export const EditorPage = (): JSX.Element => {
     setProjectMessage(`Formato actualizado a ${preset.shortLabel} (${preset.width}x${preset.height})`);
   };
 
+  const handleOpenAddLyrics = (): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de agregar texto');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    setIsAddLyricsModalOpen(true);
+  };
+
+  const handleCreateSubtitleBlocks = (lines: string[]): void => {
+    if (!activeProject) {
+      return;
+    }
+
+    const nextStartOrder = subtitleBlocks.length + 1;
+    const nextBlocks = lines.map<SubtitleBlock>((line, index) => ({
+      id: createSubtitleBlockId(),
+      projectId: activeProject.id,
+      order: nextStartOrder + index,
+      startTime: 0,
+      endTime: 0,
+      originalText: line,
+      translatedText: '',
+      enabled: true
+    }));
+
+    setSubtitleBlocks((currentBlocks) => [...currentBlocks, ...nextBlocks]);
+    updateActiveProject((project) => ({
+      ...project,
+      updatedAt: new Date().toISOString()
+    }));
+    setIsAddLyricsModalOpen(false);
+    setProjectMessage(`${nextBlocks.length} bloques de letra original creados`);
+  };
+
+  const handleUpdateSubtitleBlock = (blockId: string, text: string): void => {
+    setSubtitleBlocks((currentBlocks) =>
+      currentBlocks.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              originalText: text
+            }
+          : block
+      )
+    );
+    updateActiveProject((project) => ({
+      ...project,
+      updatedAt: new Date().toISOString()
+    }));
+  };
+
   return (
     <main className="editor-page">
       <TopBar
@@ -140,7 +206,11 @@ export const EditorPage = (): JSX.Element => {
         <div className="editor-page__main">
           <PreviewCanvas activeProject={activeProject} />
           <PlaybackControls />
-          <SubtitleBlocksPanel />
+          <SubtitleBlocksPanel
+            blocks={subtitleBlocks}
+            onAddText={handleOpenAddLyrics}
+            onUpdateBlock={handleUpdateSubtitleBlock}
+          />
         </div>
 
         <SettingsPanel
@@ -163,9 +233,16 @@ export const EditorPage = (): JSX.Element => {
         onClose={() => setIsNewProjectModalOpen(false)}
         onCreateProject={(input) => {
           createNewProject(input);
+          setSubtitleBlocks([]);
           setProjectMessage('Proyecto creado en memoria');
           setIsNewProjectModalOpen(false);
         }}
+      />
+
+      <AddLyricsModal
+        isOpen={isAddLyricsModalOpen}
+        onClose={() => setIsAddLyricsModalOpen(false)}
+        onCreateBlocks={handleCreateSubtitleBlocks}
       />
 
       <HistoryModal

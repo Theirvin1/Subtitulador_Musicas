@@ -34,3 +34,14 @@ export type VideoFormatPreset = {
   width: number;
   height: number;
 };
+
+export type SubtitleBlock = {
+  id: string;
+  projectId: string;
+  order: number;
+  startTime: number;
+  endTime: number;
+  originalText: string;
+  translatedText: string;
+  enabled: boolean;
+};
