@@ -1,8 +1,6 @@
 import { VIDEO_FORMAT_PRESETS } from '../../shared/constants/videoFormats';
-import type { Project, VideoFormat } from '../../shared/types/project';
+import type { Project, SubtitleStyle, VideoFormat } from '../../shared/types/project';
 import { getFileName } from '../services/fileUrl';
-
-const subtitleStyles = ['Cine limpio', 'Karaoke suave', 'Bilingue clasico'];
 
 type SettingsPanelProps = {
   activeProject: Project | null;
@@ -10,6 +8,11 @@ type SettingsPanelProps = {
   onSelectVideo: () => void;
   onSelectBackground: () => void;
   onChangeVideoFormat: (videoFormat: VideoFormat) => void;
+  onChangeSubtitleStyle: (updates: Partial<SubtitleStyle>) => void;
+  onCenterSubtitles: () => void;
+  onSendSubtitlesTop: () => void;
+  onSendSubtitlesBottom: () => void;
+  onResetSubtitleStyle: () => void;
 };
 
 export const SettingsPanel = ({
@@ -17,8 +20,17 @@ export const SettingsPanel = ({
   onSelectAudio,
   onSelectVideo,
   onSelectBackground,
-  onChangeVideoFormat
+  onChangeVideoFormat,
+  onChangeSubtitleStyle,
+  onCenterSubtitles,
+  onSendSubtitlesTop,
+  onSendSubtitlesBottom,
+  onResetSubtitleStyle
 }: SettingsPanelProps): JSX.Element => {
+  const subtitleStyle = activeProject?.subtitleStyle;
+  const width = activeProject?.width ?? 1920;
+  const height = activeProject?.height ?? 1080;
+
   return (
     <aside className="settings-panel" aria-label="Configuracion del proyecto">
       <div className="settings-panel__header">
@@ -98,19 +110,112 @@ export const SettingsPanel = ({
       </section>
 
       <section className="settings-panel__group">
+        <h2>Editor visual</h2>
+        <div className="visual-editor">
+          <label className="settings-panel__toggle">
+            <input
+              type="checkbox"
+              checked={subtitleStyle?.moveTogether ?? true}
+              onChange={(event) => onChangeSubtitleStyle({ moveTogether: event.target.checked })}
+            />
+            <span>Mover ambos subtitulos juntos</span>
+          </label>
+
+          <div className="visual-editor__group">
+            <h3>Texto original</h3>
+            <label className="visual-editor__field">
+              <span>Tamano</span>
+              <input
+                type="number"
+                min="12"
+                max="180"
+                value={subtitleStyle?.sizeOriginal ?? 56}
+                onChange={(event) => onChangeSubtitleStyle({ sizeOriginal: Number(event.target.value) })}
+              />
+            </label>
+            <label className="visual-editor__field">
+              <span>X</span>
+              <input
+                type="range"
+                min="0"
+                max={width}
+                value={subtitleStyle?.xOriginal ?? width / 2}
+                onChange={(event) => onChangeSubtitleStyle({ xOriginal: Number(event.target.value) })}
+              />
+            </label>
+            <label className="visual-editor__field">
+              <span>Y</span>
+              <input
+                type="range"
+                min="0"
+                max={height}
+                value={subtitleStyle?.yOriginal ?? height * 0.8}
+                onChange={(event) => onChangeSubtitleStyle({ yOriginal: Number(event.target.value) })}
+              />
+            </label>
+          </div>
+
+          <div className="visual-editor__group">
+            <h3>Traduccion</h3>
+            <label className="visual-editor__field">
+              <span>Tamano</span>
+              <input
+                type="number"
+                min="12"
+                max="180"
+                value={subtitleStyle?.sizeTranslation ?? 40}
+                onChange={(event) =>
+                  onChangeSubtitleStyle({ sizeTranslation: Number(event.target.value) })
+                }
+              />
+            </label>
+            <label className="visual-editor__field">
+              <span>X</span>
+              <input
+                type="range"
+                min="0"
+                max={width}
+                value={subtitleStyle?.xTranslation ?? width / 2}
+                disabled={subtitleStyle?.moveTogether ?? true}
+                onChange={(event) =>
+                  onChangeSubtitleStyle({ xTranslation: Number(event.target.value) })
+                }
+              />
+            </label>
+            <label className="visual-editor__field">
+              <span>Y</span>
+              <input
+                type="range"
+                min="0"
+                max={height}
+                value={subtitleStyle?.yTranslation ?? height * 0.86}
+                disabled={subtitleStyle?.moveTogether ?? true}
+                onChange={(event) =>
+                  onChangeSubtitleStyle({ yTranslation: Number(event.target.value) })
+                }
+              />
+            </label>
+          </div>
+
+          <div className="visual-editor__actions">
+            <button type="button" onClick={onCenterSubtitles}>
+              Centrar horizontalmente
+            </button>
+            <button type="button" onClick={onSendSubtitlesTop}>
+              Enviar arriba
+            </button>
+            <button type="button" onClick={onSendSubtitlesBottom}>
+              Enviar abajo
+            </button>
+            <button type="button" onClick={onResetSubtitleStyle}>
+              Restablecer posicion
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="settings-panel__group">
         <h2>Subtitulos</h2>
-        <label className="settings-panel__field">
-          <span>Estilo visual</span>
-          <select defaultValue={subtitleStyles[0]}>
-            {subtitleStyles.map((style) => (
-              <option key={style}>{style}</option>
-            ))}
-          </select>
-        </label>
-        <label className="settings-panel__field">
-          <span>Tamano de texto</span>
-          <input type="range" min="24" max="72" defaultValue="42" />
-        </label>
         <label className="settings-panel__toggle">
           <input type="checkbox" defaultChecked />
           <span>Mostrar traduccion</span>

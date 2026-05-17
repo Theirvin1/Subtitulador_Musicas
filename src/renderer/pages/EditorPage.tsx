@@ -18,9 +18,15 @@ import {
   shiftSubtitleBlock
 } from '../services/subtitleBlocks';
 import { assignSubtitleTimings, type AutomaticTimingMode } from '../services/subtitleTiming';
+import { createDefaultSubtitleStyle } from '../../shared/constants/subtitleStyle';
 import { getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { MediaKind } from '../../shared/types/media';
-import type { ProjectSummary, SubtitleBlock, VideoFormat } from '../../shared/types/project';
+import type {
+  ProjectSummary,
+  SubtitleBlock,
+  SubtitleStyle,
+  VideoFormat
+} from '../../shared/types/project';
 
 const createSubtitleBlockId = (): string => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -29,6 +35,24 @@ const createSubtitleBlockId = (): string => {
 
   return `subtitle-block-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
+
+const clamp = (value: number, min: number, max: number): number => {
+  return Math.min(Math.max(value, min), max);
+};
+
+const clampSubtitleStyle = (
+  style: SubtitleStyle,
+  width: number,
+  height: number
+): SubtitleStyle => ({
+  ...style,
+  sizeOriginal: clamp(style.sizeOriginal, 12, 180),
+  sizeTranslation: clamp(style.sizeTranslation, 12, 180),
+  xOriginal: clamp(style.xOriginal, 0, width),
+  yOriginal: clamp(style.yOriginal, 0, height),
+  xTranslation: clamp(style.xTranslation, 0, width),
+  yTranslation: clamp(style.yTranslation, 0, height)
+});
 
 export const EditorPage = (): JSX.Element => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -147,10 +171,99 @@ export const EditorPage = (): JSX.Element => {
       videoFormat,
       width: preset.width,
       height: preset.height,
+      subtitleStyle: createDefaultSubtitleStyle(preset.width, preset.height),
       updatedAt: new Date().toISOString()
     }));
 
     setProjectMessage(`Formato actualizado a ${preset.shortLabel} (${preset.width}x${preset.height})`);
+  };
+
+  const handleChangeSubtitleStyle = (updates: Partial<SubtitleStyle>): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de editar subtitulos');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    updateActiveProject((project) => {
+      const currentStyle =
+        project.subtitleStyle ?? createDefaultSubtitleStyle(project.width, project.height);
+      const nextStyle: SubtitleStyle = {
+        ...currentStyle,
+        ...updates
+      };
+
+      if (currentStyle.moveTogether) {
+        if (updates.xOriginal !== undefined && updates.xTranslation === undefined) {
+          const offsetX = updates.xOriginal - currentStyle.xOriginal;
+          nextStyle.xTranslation = currentStyle.xTranslation + offsetX;
+        }
+
+        if (updates.yOriginal !== undefined && updates.yTranslation === undefined) {
+          const offsetY = updates.yOriginal - currentStyle.yOriginal;
+          nextStyle.yTranslation = currentStyle.yTranslation + offsetY;
+        }
+      }
+
+      return {
+        ...project,
+        subtitleStyle: clampSubtitleStyle(nextStyle, project.width, project.height),
+        updatedAt: new Date().toISOString()
+      };
+    });
+  };
+
+  const handleCenterSubtitles = (): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de editar subtitulos');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    handleChangeSubtitleStyle({
+      xOriginal: Math.round(activeProject.width / 2),
+      xTranslation: Math.round(activeProject.width / 2)
+    });
+  };
+
+  const handleSendSubtitlesTop = (): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de editar subtitulos');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    handleChangeSubtitleStyle({
+      yOriginal: Math.round(activeProject.height * 0.16),
+      yTranslation: Math.round(activeProject.height * 0.23)
+    });
+  };
+
+  const handleSendSubtitlesBottom = (): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de editar subtitulos');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    handleChangeSubtitleStyle({
+      yOriginal: Math.round(activeProject.height * 0.8),
+      yTranslation: Math.round(activeProject.height * 0.87)
+    });
+  };
+
+  const handleResetSubtitleStyle = (): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de editar subtitulos');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    updateActiveProject((project) => ({
+      ...project,
+      subtitleStyle: createDefaultSubtitleStyle(project.width, project.height),
+      updatedAt: new Date().toISOString()
+    }));
   };
 
   const handleOpenAddLyrics = (): void => {
@@ -450,6 +563,11 @@ export const EditorPage = (): JSX.Element => {
             void handleSelectMedia('background');
           }}
           onChangeVideoFormat={handleChangeVideoFormat}
+          onChangeSubtitleStyle={handleChangeSubtitleStyle}
+          onCenterSubtitles={handleCenterSubtitles}
+          onSendSubtitlesTop={handleSendSubtitlesTop}
+          onSendSubtitlesBottom={handleSendSubtitlesBottom}
+          onResetSubtitleStyle={handleResetSubtitleStyle}
         />
       </section>
 

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import initSqlJs from 'sql.js';
 import type { Project, ProjectSummary } from '../../shared/types/project';
-import { DATABASE_SCHEMA } from './schema';
+import { DATABASE_MIGRATIONS, DATABASE_SCHEMA } from './schema';
 import {
   deleteProject,
   isProjectPayload,
@@ -42,6 +42,13 @@ export const createDatabase = async (
     : new SQL.Database();
 
   database.exec(DATABASE_SCHEMA);
+  DATABASE_MIGRATIONS.forEach((migration) => {
+    try {
+      database.run(migration);
+    } catch {
+      // Column already exists.
+    }
+  });
   persistDatabase(database, databasePath);
 
   return {

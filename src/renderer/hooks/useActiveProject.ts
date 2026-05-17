@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { createDefaultSubtitleStyle } from '../../shared/constants/subtitleStyle';
 import { DEFAULT_FPS, DEFAULT_VIDEO_FORMAT, getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { Project, VideoFormat } from '../../shared/types/project';
 
@@ -38,6 +39,7 @@ export const useActiveProject = (): ActiveProjectState => {
       width: preset.width,
       height: preset.height,
       fps: DEFAULT_FPS,
+      subtitleStyle: createDefaultSubtitleStyle(preset.width, preset.height),
       createdAt: now,
       updatedAt: now
     };
