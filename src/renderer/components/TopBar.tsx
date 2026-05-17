@@ -1,0 +1,25 @@
+import { APP_ALIAS, APP_NAME } from '../../shared/constants/app';
+
+const actions = ['Nuevo', 'Abrir', 'Historial', 'Guardar', 'Exportar'];
+
+export const TopBar = (): JSX.Element => {
+  return (
+    <header className="top-bar">
+      <div className="top-bar__brand">
+        <span className="top-bar__mark">LS</span>
+        <div>
+          <strong>{APP_NAME}</strong>
+          <span>{APP_ALIAS}</span>
+        </div>
+      </div>
+
+      <nav className="top-bar__actions" aria-label="Acciones del proyecto">
+        {actions.map((action) => (
+          <button key={action} type="button" className="top-bar__button">
+            {action}
+          </button>
+        ))}
+      </nav>
+    </header>
+  );
+};
