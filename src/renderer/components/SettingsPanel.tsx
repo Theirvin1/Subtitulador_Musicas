@@ -1,27 +1,52 @@
-const videoFormats = ['Horizontal 16:9', 'Vertical 9:16', 'Cuadrado 1:1'];
+import { VIDEO_FORMAT_PRESETS } from '../../shared/constants/videoFormats';
+import type { Project } from '../../shared/types/project';
+
 const subtitleStyles = ['Cine limpio', 'Karaoke suave', 'Bilingue clasico'];
 
-export const SettingsPanel = (): JSX.Element => {
+type SettingsPanelProps = {
+  activeProject: Project | null;
+};
+
+export const SettingsPanel = ({ activeProject }: SettingsPanelProps): JSX.Element => {
   return (
     <aside className="settings-panel" aria-label="Configuracion del proyecto">
       <div className="settings-panel__header">
         <p>Configuracion</p>
-        <span>Proyecto</span>
+        <span>{activeProject ? activeProject.name : 'Proyecto no creado'}</span>
       </div>
 
       <section className="settings-panel__group">
         <h2>Formato</h2>
         <div className="settings-panel__options">
-          {videoFormats.map((format, index) => (
+          {VIDEO_FORMAT_PRESETS.slice(0, 3).map((format) => (
             <button
-              key={format}
+              key={format.value}
               type="button"
-              className={index === 0 ? 'settings-panel__option is-active' : 'settings-panel__option'}
+              className={
+                activeProject?.videoFormat === format.value ||
+                (!activeProject && format.value === 'HORIZONTAL_16_9')
+                  ? 'settings-panel__option is-active'
+                  : 'settings-panel__option'
+              }
             >
-              {format}
+              {format.label}
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="settings-panel__group">
+        <h2>Proyecto activo</h2>
+        <dl className="settings-panel__details">
+          <div>
+            <dt>Resolucion</dt>
+            <dd>{activeProject ? `${activeProject.width}x${activeProject.height}` : 'Sin definir'}</dd>
+          </div>
+          <div>
+            <dt>FPS</dt>
+            <dd>{activeProject ? activeProject.fps : 'Sin definir'}</dd>
+          </div>
+        </dl>
       </section>
 
       <section className="settings-panel__group">

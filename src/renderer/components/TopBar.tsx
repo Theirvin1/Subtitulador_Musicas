@@ -2,7 +2,12 @@ import { APP_ALIAS, APP_NAME } from '../../shared/constants/app';
 
 const actions = ['Nuevo', 'Abrir', 'Historial', 'Guardar', 'Exportar'];
 
-export const TopBar = (): JSX.Element => {
+type TopBarProps = {
+  activeProjectName?: string;
+  onNewProject: () => void;
+};
+
+export const TopBar = ({ activeProjectName, onNewProject }: TopBarProps): JSX.Element => {
   return (
     <header className="top-bar">
       <div className="top-bar__brand">
@@ -13,9 +18,19 @@ export const TopBar = (): JSX.Element => {
         </div>
       </div>
 
+      <div className="top-bar__project" aria-label="Proyecto activo">
+        <span>Proyecto activo</span>
+        <strong>{activeProjectName ?? 'Sin proyecto'}</strong>
+      </div>
+
       <nav className="top-bar__actions" aria-label="Acciones del proyecto">
         {actions.map((action) => (
-          <button key={action} type="button" className="top-bar__button">
+          <button
+            key={action}
+            type="button"
+            className="top-bar__button"
+            onClick={action === 'Nuevo' ? onNewProject : undefined}
+          >
             {action}
           </button>
         ))}
