@@ -1,13 +1,22 @@
 import { VIDEO_FORMAT_PRESETS } from '../../shared/constants/videoFormats';
 import type { Project } from '../../shared/types/project';
+import { getFileName } from '../services/fileUrl';
 
 const subtitleStyles = ['Cine limpio', 'Karaoke suave', 'Bilingue clasico'];
 
 type SettingsPanelProps = {
   activeProject: Project | null;
+  onSelectAudio: () => void;
+  onSelectVideo: () => void;
+  onSelectBackground: () => void;
 };
 
-export const SettingsPanel = ({ activeProject }: SettingsPanelProps): JSX.Element => {
+export const SettingsPanel = ({
+  activeProject,
+  onSelectAudio,
+  onSelectVideo,
+  onSelectBackground
+}: SettingsPanelProps): JSX.Element => {
   return (
     <aside className="settings-panel" aria-label="Configuracion del proyecto">
       <div className="settings-panel__header">
@@ -47,6 +56,39 @@ export const SettingsPanel = ({ activeProject }: SettingsPanelProps): JSX.Elemen
             <dd>{activeProject ? activeProject.fps : 'Sin definir'}</dd>
           </div>
         </dl>
+      </section>
+
+      <section className="settings-panel__group">
+        <h2>Multimedia</h2>
+        <div className="media-loader">
+          <div className="media-loader__item">
+            <div>
+              <span>Audio</span>
+              <strong>{getFileName(activeProject?.audioPath)}</strong>
+            </div>
+            <button type="button" onClick={onSelectAudio}>
+              Cargar
+            </button>
+          </div>
+          <div className="media-loader__item">
+            <div>
+              <span>Video</span>
+              <strong>{getFileName(activeProject?.videoPath)}</strong>
+            </div>
+            <button type="button" onClick={onSelectVideo}>
+              Cargar
+            </button>
+          </div>
+          <div className="media-loader__item">
+            <div>
+              <span>Imagen de fondo</span>
+              <strong>{getFileName(activeProject?.backgroundPath)}</strong>
+            </div>
+            <button type="button" onClick={onSelectBackground}>
+              Cargar
+            </button>
+          </div>
+        </div>
       </section>
 
       <section className="settings-panel__group">

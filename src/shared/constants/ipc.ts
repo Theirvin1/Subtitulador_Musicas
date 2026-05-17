@@ -4,5 +4,8 @@ export const IPC_CHANNELS = {
     list: 'projects:list',
     open: 'projects:open',
     delete: 'projects:delete'
+  },
+  media: {
+    selectFile: 'media:select-file'
   }
 } as const;

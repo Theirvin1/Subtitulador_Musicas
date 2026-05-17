@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/constants/ipc';
+import { selectMediaFile } from '../media';
 import type { AppDatabase } from '../database';
 
 export const registerIpcHandlers = (database: AppDatabase): void => {
@@ -17,5 +18,9 @@ export const registerIpcHandlers = (database: AppDatabase): void => {
 
   ipcMain.handle(IPC_CHANNELS.projects.delete, (_event, projectId: unknown) => {
     return database.deleteProject(projectId);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.media.selectFile, (_event, kind: unknown) => {
+    return selectMediaFile(kind);
   });
 };
