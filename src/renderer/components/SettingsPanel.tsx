@@ -1,5 +1,5 @@
 import { VIDEO_FORMAT_PRESETS } from '../../shared/constants/videoFormats';
-import type { Project } from '../../shared/types/project';
+import type { Project, VideoFormat } from '../../shared/types/project';
 import { getFileName } from '../services/fileUrl';
 
 const subtitleStyles = ['Cine limpio', 'Karaoke suave', 'Bilingue clasico'];
@@ -9,13 +9,15 @@ type SettingsPanelProps = {
   onSelectAudio: () => void;
   onSelectVideo: () => void;
   onSelectBackground: () => void;
+  onChangeVideoFormat: (videoFormat: VideoFormat) => void;
 };
 
 export const SettingsPanel = ({
   activeProject,
   onSelectAudio,
   onSelectVideo,
-  onSelectBackground
+  onSelectBackground,
+  onChangeVideoFormat
 }: SettingsPanelProps): JSX.Element => {
   return (
     <aside className="settings-panel" aria-label="Configuracion del proyecto">
@@ -25,20 +27,24 @@ export const SettingsPanel = ({
       </div>
 
       <section className="settings-panel__group">
-        <h2>Formato</h2>
-        <div className="settings-panel__options">
-          {VIDEO_FORMAT_PRESETS.slice(0, 3).map((format) => (
+        <h2>Formato de video</h2>
+        <div className="video-format-grid">
+          {VIDEO_FORMAT_PRESETS.map((format) => (
             <button
               key={format.value}
               type="button"
               className={
                 activeProject?.videoFormat === format.value ||
                 (!activeProject && format.value === 'HORIZONTAL_16_9')
-                  ? 'settings-panel__option is-active'
-                  : 'settings-panel__option'
+                  ? 'video-format-grid__option is-active'
+                  : 'video-format-grid__option'
               }
+              onClick={() => onChangeVideoFormat(format.value)}
             >
-              {format.label}
+              <span>{format.shortLabel}</span>
+              <strong>
+                {format.value === 'ORIGINAL' ? 'Original' : `${format.width}x${format.height}`}
+              </strong>
             </button>
           ))}
         </div>

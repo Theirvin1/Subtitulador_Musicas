@@ -9,8 +9,9 @@ import { TopBar } from '../components/TopBar';
 import { useActiveProject } from '../hooks/useActiveProject';
 import { mediaService } from '../services/mediaService';
 import { projectStorage } from '../services/projectStorage';
+import { getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { MediaKind } from '../../shared/types/media';
-import type { ProjectSummary } from '../../shared/types/project';
+import type { ProjectSummary, VideoFormat } from '../../shared/types/project';
 
 export const EditorPage = (): JSX.Element => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -98,6 +99,26 @@ export const EditorPage = (): JSX.Element => {
     setProjectMessage(`${mediaFile.name} cargado en el proyecto`);
   };
 
+  const handleChangeVideoFormat = (videoFormat: VideoFormat): void => {
+    if (!activeProject) {
+      setProjectMessage('Crea un proyecto antes de cambiar el formato');
+      setIsNewProjectModalOpen(true);
+      return;
+    }
+
+    const preset = getVideoFormatPreset(videoFormat);
+
+    updateActiveProject((project) => ({
+      ...project,
+      videoFormat,
+      width: preset.width,
+      height: preset.height,
+      updatedAt: new Date().toISOString()
+    }));
+
+    setProjectMessage(`Formato actualizado a ${preset.shortLabel} (${preset.width}x${preset.height})`);
+  };
+
   return (
     <main className="editor-page">
       <TopBar
@@ -133,6 +154,7 @@ export const EditorPage = (): JSX.Element => {
           onSelectBackground={() => {
             void handleSelectMedia('background');
           }}
+          onChangeVideoFormat={handleChangeVideoFormat}
         />
       </section>
 
