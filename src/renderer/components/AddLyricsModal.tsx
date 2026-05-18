@@ -40,7 +40,7 @@ export const AddLyricsModal = ({
   const [language, setLanguage] = useState(originalLanguages[0].value);
   const [splitMode, setSplitMode] = useState<TextSplitMode>('lines');
   const [translationSplitMode, setTranslationSplitMode] = useState<TextSplitMode>('lines');
-  const [timingMode, setTimingMode] = useState<AutomaticTimingMode>('fixed-2');
+  const [timingMode, setTimingMode] = useState<AutomaticTimingMode>('distribute');
   const [validationError, setValidationError] = useState('');
   const hasExistingBlocks = existingOriginalLines.length > 0;
 
@@ -98,7 +98,7 @@ export const AddLyricsModal = ({
     setLanguage(originalLanguages[0].value);
     setSplitMode('lines');
     setTranslationSplitMode('lines');
-    setTimingMode('fixed-2');
+    setTimingMode('distribute');
     setValidationError('');
   };
 

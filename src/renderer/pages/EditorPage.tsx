@@ -567,7 +567,8 @@ export const EditorPage = (): JSX.Element => {
     const nextStartOrder = subtitleBlocks.length + 1;
     const timings = assignSubtitleTimings({
       blockCount: lines.length,
-      mode: timingMode
+      mode: timingMode,
+      totalDuration: duration
     });
     const nextBlocks = lines.map<SubtitleBlock>((line, index) => ({
       id: createSubtitleBlockId(),
@@ -590,7 +591,9 @@ export const EditorPage = (): JSX.Element => {
     setProjectMessage(
       translations
         ? `${nextBlocks.length} bloques creados con traduccion`
-        : `${nextBlocks.length} bloques creados con tiempos iniciales`
+        : duration > 0 && timingMode === 'distribute'
+          ? `${nextBlocks.length} bloques distribuidos en ${Math.round(duration)} segundos`
+          : `${nextBlocks.length} bloques creados con tiempos iniciales`
     );
   };
 
