@@ -36,3 +36,49 @@ export const shiftSubtitleBlock = (block: SubtitleBlock, offset: number): Subtit
     endTime: startTime + duration
   };
 };
+
+export type SubtitleOverlap = {
+  currentId: string;
+  nextId: string;
+  currentOrder: number;
+  nextOrder: number;
+};
+
+export const detectSubtitleOverlaps = (blocks: SubtitleBlock[]): SubtitleOverlap[] => {
+  const sortedBlocks = [...blocks]
+    .filter((block) => block.enabled)
+    .sort((firstBlock, secondBlock) => {
+      if (firstBlock.startTime === secondBlock.startTime) {
+        return firstBlock.order - secondBlock.order;
+      }
+
+      return firstBlock.startTime - secondBlock.startTime;
+    });
+
+  return sortedBlocks.reduce<SubtitleOverlap[]>((overlaps, block, index) => {
+    const nextBlock = sortedBlocks[index + 1];
+
+    if (nextBlock && block.endTime > nextBlock.startTime) {
+      overlaps.push({
+        currentId: block.id,
+        nextId: nextBlock.id,
+        currentOrder: block.order,
+        nextOrder: nextBlock.order
+      });
+    }
+
+    return overlaps;
+  }, []);
+};
+
+export const setSubtitleBlockDuration = (
+  block: SubtitleBlock,
+  duration: number
+): SubtitleBlock => {
+  const safeDuration = Math.max(MIN_BLOCK_DURATION, clampTime(duration));
+
+  return {
+    ...block,
+    endTime: block.startTime + safeDuration
+  };
+};

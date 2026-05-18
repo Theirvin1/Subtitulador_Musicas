@@ -16,8 +16,10 @@ import { exportService } from '../services/exportService';
 import { fontService } from '../services/fontService';
 import { projectStorage } from '../services/projectStorage';
 import {
+  detectSubtitleOverlaps,
   normalizeTimeRange,
   reorderSubtitleBlocks,
+  setSubtitleBlockDuration,
   shiftSubtitleBlock
 } from '../services/subtitleBlocks';
 import { assignSubtitleTimings, type AutomaticTimingMode } from '../services/subtitleTiming';
@@ -98,6 +100,8 @@ export const EditorPage = (): JSX.Element => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [projectMessage, setProjectMessage] = useState('Proyecto en memoria');
   const [subtitleBlocks, setSubtitleBlocks] = useState<SubtitleBlock[]>([]);
+  const [selectedSubtitleBlockIds, setSelectedSubtitleBlockIds] = useState<string[]>([]);
+  const [bulkDurationValue, setBulkDurationValue] = useState(2);
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
@@ -105,6 +109,7 @@ export const EditorPage = (): JSX.Element => {
   const [saveError, setSaveError] = useState('');
   const [saveStatusTick, setSaveStatusTick] = useState(0);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blockPlaybackEndRef = useRef<number | null>(null);
   const dirtyRevisionRef = useRef(0);
   const { activeProject, createNewProject, setActiveProject, updateActiveProject } =
     useActiveProject();
@@ -121,6 +126,10 @@ export const EditorPage = (): JSX.Element => {
       ) ?? null
     );
   }, [currentTime, subtitleBlocks]);
+  const subtitleOverlapWarnings = useMemo(
+    () => detectSubtitleOverlaps(subtitleBlocks),
+    [subtitleBlocks]
+  );
   const saveStatusLabel = useMemo(
     () => formatSaveStatus(saveStatus, lastSavedAt, saveError),
     [lastSavedAt, saveError, saveStatus, saveStatusTick]
@@ -132,6 +141,25 @@ export const EditorPage = (): JSX.Element => {
     });
     void fontService.list().then(setCustomFonts);
   }, []);
+
+  useEffect(() => {
+    setSelectedSubtitleBlockIds((currentIds) => {
+      const availableIds = new Set(subtitleBlocks.map((block) => block.id));
+
+      return currentIds.filter((blockId) => availableIds.has(blockId));
+    });
+  }, [subtitleBlocks]);
+
+  useEffect(() => {
+    if (blockPlaybackEndRef.current === null) {
+      return;
+    }
+
+    if (currentTime >= blockPlaybackEndRef.current) {
+      pause();
+      blockPlaybackEndRef.current = null;
+    }
+  }, [currentTime, pause]);
 
   useEffect(() => {
     customFonts.forEach((font) => {
@@ -585,6 +613,102 @@ export const EditorPage = (): JSX.Element => {
     touchProject();
   };
 
+  const handleSelectSubtitleBlock = (blockId: string, selected: boolean): void => {
+    setSelectedSubtitleBlockIds((currentIds) => {
+      if (selected) {
+        return currentIds.includes(blockId) ? currentIds : [...currentIds, blockId];
+      }
+
+      return currentIds.filter((currentId) => currentId !== blockId);
+    });
+  };
+
+  const handleSelectAllSubtitleBlocks = (): void => {
+    setSelectedSubtitleBlockIds(subtitleBlocks.map((block) => block.id));
+  };
+
+  const handleClearSubtitleSelection = (): void => {
+    setSelectedSubtitleBlockIds([]);
+  };
+
+  const handleShiftSubtitleBlocks = (offset: number, mode: 'all' | 'selected'): void => {
+    const selectedIds = new Set(selectedSubtitleBlockIds);
+    const shouldShiftBlock =
+      mode === 'all' ? () => true : (block: SubtitleBlock) => selectedIds.has(block.id);
+
+    if (mode === 'selected' && selectedIds.size === 0) {
+      setProjectMessage('Selecciona uno o varios bloques para moverlos');
+      return;
+    }
+
+    setSubtitleBlocks((currentBlocks) =>
+      reorderSubtitleBlocks(
+        currentBlocks.map((block) => (shouldShiftBlock(block) ? shiftSubtitleBlock(block, offset) : block))
+      )
+    );
+    setProjectMessage(
+      mode === 'all'
+        ? `Todos los bloques se movieron ${offset > 0 ? '+' : ''}${offset}s`
+        : `${selectedIds.size} bloques seleccionados se movieron ${offset > 0 ? '+' : ''}${offset}s`
+    );
+    touchProject();
+  };
+
+  const handleApplyDurationToAllBlocks = (): void => {
+    if (subtitleBlocks.length === 0) {
+      setProjectMessage('Crea bloques antes de ajustar duraciones');
+      return;
+    }
+
+    const safeDuration = Number.isFinite(bulkDurationValue) ? Math.max(0.001, bulkDurationValue) : 2;
+
+    setBulkDurationValue(Number(safeDuration.toFixed(3)));
+    setSubtitleBlocks((currentBlocks) =>
+      reorderSubtitleBlocks(currentBlocks.map((block) => setSubtitleBlockDuration(block, safeDuration)))
+    );
+    setProjectMessage(`Duracion de todos los bloques ajustada a ${safeDuration}s`);
+    touchProject();
+  };
+
+  const handleGoToActiveBlock = (): void => {
+    if (!activeSubtitleBlock) {
+      setProjectMessage('No hay bloque activo en el tiempo actual');
+      return;
+    }
+
+    setSelectedSubtitleBlockIds([activeSubtitleBlock.id]);
+    document
+      .querySelector(`[data-block-id="${activeSubtitleBlock.id}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setProjectMessage(`Bloque ${activeSubtitleBlock.order} localizado`);
+  };
+
+  const playSubtitleBlock = (block: SubtitleBlock, onlyCurrentBlock: boolean): void => {
+    blockPlaybackEndRef.current = onlyCurrentBlock ? block.endTime : null;
+    seek(block.startTime);
+    play();
+  };
+
+  const handlePlayFromCurrentBlock = (): void => {
+    if (!activeSubtitleBlock) {
+      setProjectMessage('No hay bloque activo para reproducir');
+      return;
+    }
+
+    playSubtitleBlock(activeSubtitleBlock, false);
+    setProjectMessage(`Reproduciendo desde el bloque ${activeSubtitleBlock.order}`);
+  };
+
+  const handlePlayCurrentBlockOnly = (): void => {
+    if (!activeSubtitleBlock) {
+      setProjectMessage('No hay bloque activo para reproducir');
+      return;
+    }
+
+    playSubtitleBlock(activeSubtitleBlock, true);
+    setProjectMessage(`Reproduciendo solo el bloque ${activeSubtitleBlock.order}`);
+  };
+
   const splitText = (text: string): [string, string] | null => {
     const trimmedText = text.trim();
 
@@ -764,9 +888,23 @@ export const EditorPage = (): JSX.Element => {
           />
           <SubtitleBlocksPanel
             blocks={subtitleBlocks}
+            activeBlockId={activeSubtitleBlock?.id}
+            durationValue={bulkDurationValue}
+            overlapWarnings={subtitleOverlapWarnings}
+            selectedBlockIds={selectedSubtitleBlockIds}
             onAddText={handleOpenAddLyrics}
+            onSelectBlock={handleSelectSubtitleBlock}
+            onSelectAllBlocks={handleSelectAllSubtitleBlocks}
+            onClearSelection={handleClearSubtitleSelection}
             onChangeBlock={handleChangeSubtitleBlock}
             onShiftBlockTime={handleShiftSubtitleBlockTime}
+            onShiftAllBlocks={(offset) => handleShiftSubtitleBlocks(offset, 'all')}
+            onShiftSelectedBlocks={(offset) => handleShiftSubtitleBlocks(offset, 'selected')}
+            onChangeDurationValue={setBulkDurationValue}
+            onApplyDurationToAll={handleApplyDurationToAllBlocks}
+            onGoToActiveBlock={handleGoToActiveBlock}
+            onPlayFromCurrentBlock={handlePlayFromCurrentBlock}
+            onPlayCurrentBlockOnly={handlePlayCurrentBlockOnly}
             onSplitBlock={handleSplitSubtitleBlock}
             onJoinWithNext={handleJoinSubtitleBlockWithNext}
             onDeleteBlock={handleDeleteSubtitleBlock}

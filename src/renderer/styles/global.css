@@ -130,6 +130,7 @@ button {
 
 .top-bar__button,
 .subtitle-blocks__header button,
+.sync-tools button,
 .playback-controls button,
 .new-project-modal__actions button,
 .new-project-modal__header button {
@@ -147,6 +148,7 @@ button {
 
 .top-bar__button:hover,
 .subtitle-blocks__header button:hover,
+.sync-tools button:hover,
 .playback-controls button:hover,
 .new-project-modal__actions button:hover,
 .new-project-modal__header button:hover {
@@ -897,7 +899,7 @@ video.preview-canvas__media {
 
 .subtitle-blocks {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-height: 0;
   padding: 16px;
 }
@@ -934,6 +936,110 @@ video.preview-canvas__media {
   font-weight: 800;
 }
 
+.sync-tools {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid #dce2eb;
+  border-radius: 8px;
+  background: #f7f9fc;
+}
+
+.sync-tools__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sync-tools__header h3 {
+  margin: 0;
+  color: #151c27;
+  font-size: 0.95rem;
+}
+
+.sync-tools__header span,
+.sync-tools__group span,
+.sync-tools__duration span,
+.sync-tools__warnings span {
+  color: #687386;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.sync-tools__selection,
+.sync-tools__group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.sync-tools__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.sync-tools__group,
+.sync-tools__duration {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #e0e6ef;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sync-tools__duration {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.sync-tools__duration span {
+  grid-column: 1 / -1;
+}
+
+.sync-tools__duration input {
+  min-width: 0;
+  height: 36px;
+  border: 1px solid #d5dce7;
+  border-radius: 7px;
+  padding: 0 9px;
+  color: #151c27;
+  font-variant-numeric: tabular-nums;
+}
+
+.sync-tools button {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.sync-tools button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.sync-tools__warnings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #fdba74;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.sync-tools__warnings strong {
+  color: #9a3412;
+  font-size: 0.84rem;
+}
+
 .subtitle-card {
   display: grid;
   grid-template-columns: 120px minmax(180px, 0.9fr) minmax(260px, 1fr) minmax(260px, 1fr);
@@ -949,6 +1055,19 @@ video.preview-canvas__media {
   opacity: 0.62;
 }
 
+.subtitle-card.is-selected {
+  border-color: #74b9b1;
+  background: #f2fbf9;
+}
+
+.subtitle-card.is-active {
+  box-shadow: inset 3px 0 0 #245c57;
+}
+
+.subtitle-card.has-overlap {
+  border-color: #fdba74;
+}
+
 .subtitle-card__header {
   display: grid;
   gap: 10px;
@@ -959,7 +1078,42 @@ video.preview-canvas__media {
   gap: 3px;
 }
 
+.subtitle-card__select {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.subtitle-card__select input {
+  width: 16px;
+  height: 16px;
+  accent-color: #245c57;
+}
+
+.subtitle-card__badge,
+.subtitle-card__warning {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 24px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 9px;
+  font-size: 0.73rem;
+  font-weight: 900;
+}
+
+.subtitle-card__badge {
+  background: #e5f3f1;
+  color: #174c47;
+}
+
+.subtitle-card__warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
 .subtitle-card__index span,
+.subtitle-card__select span,
 .subtitle-card__time-grid span,
 .subtitle-card__textarea span {
   color: #687386;
@@ -1749,6 +1903,10 @@ video.preview-canvas__media {
     grid-template-columns: 1fr;
   }
 
+  .sync-tools__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .history-project__main,
   .history-project__actions {
     grid-column: 1 / -1;
@@ -1773,6 +1931,7 @@ video.preview-canvas__media {
 
   .playback-controls__row,
   .subtitle-blocks__header,
+  .sync-tools__header,
   .new-project-modal__header,
   .new-project-modal__actions,
   .history-modal__header,
@@ -1805,6 +1964,16 @@ video.preview-canvas__media {
   }
 
   .media-loader__item button {
+    width: 100%;
+  }
+
+  .sync-tools__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sync-tools__selection,
+  .sync-tools__selection button,
+  .sync-tools__group button {
     width: 100%;
   }
 
