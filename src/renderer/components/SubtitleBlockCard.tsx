@@ -3,6 +3,10 @@ import type { SubtitleBlock } from '../../shared/types/project';
 type SubtitleBlockCardProps = {
   block: SubtitleBlock;
   canJoinNext: boolean;
+  isActive: boolean;
+  isOverlapping: boolean;
+  isSelected: boolean;
+  onSelect: (blockId: string, selected: boolean) => void;
   onChange: (blockId: string, updates: Partial<SubtitleBlock>) => void;
   onShiftTime: (blockId: string, offset: number) => void;
   onSplit: (blockId: string) => void;
@@ -23,6 +27,10 @@ const parseTimeInputValue = (value: string): number => {
 export const SubtitleBlockCard = ({
   block,
   canJoinNext,
+  isActive,
+  isOverlapping,
+  isSelected,
+  onSelect,
   onChange,
   onShiftTime,
   onSplit,
@@ -30,13 +38,33 @@ export const SubtitleBlockCard = ({
   onDelete,
   onToggleEnabled
 }: SubtitleBlockCardProps): JSX.Element => {
+  const className = [
+    'subtitle-card',
+    block.enabled ? '' : 'is-disabled',
+    isActive ? 'is-active' : '',
+    isOverlapping ? 'has-overlap' : '',
+    isSelected ? 'is-selected' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <article className={block.enabled ? 'subtitle-card' : 'subtitle-card is-disabled'}>
+    <article className={className} data-block-id={block.id}>
       <div className="subtitle-card__header">
         <div className="subtitle-card__index">
-          <span>Bloque</span>
+          <label className="subtitle-card__select">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              aria-label={`Seleccionar bloque ${block.order}`}
+              onChange={(event) => onSelect(block.id, event.target.checked)}
+            />
+            <span>Bloque</span>
+          </label>
           <strong>{String(block.order).padStart(2, '0')}</strong>
         </div>
+        {isActive ? <span className="subtitle-card__badge">Activo</span> : null}
+        {isOverlapping ? <span className="subtitle-card__warning">Solapado</span> : null}
         <button type="button" onClick={() => onToggleEnabled(block.id)}>
           {block.enabled ? 'Desactivar' : 'Activar'}
         </button>
