@@ -1,6 +1,8 @@
 import type {
   ExportRequest,
   ExportResult,
+  ExportValidationRequest,
+  ExportValidationResult,
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from '../../shared/types/export';
@@ -14,6 +16,9 @@ export const exportService = {
   },
   extractCoverFrame(request: ExtractCoverFrameRequest): Promise<ExtractCoverFrameResult> {
     return window.subMusic.export.extractCoverFrame(request);
+  },
+  validateBeforeExport(request: ExportValidationRequest): Promise<ExportValidationResult> {
+    return window.subMusic.export.validate(request);
   },
   exportMp4(request: ExportRequest): Promise<ExportResult> {
     return window.subMusic.export.mp4(request);

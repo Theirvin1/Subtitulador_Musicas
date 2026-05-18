@@ -20,6 +20,7 @@ export const IPC_CHANNELS = {
     checkFfmpeg: 'export:check-ffmpeg',
     selectOutputDirectory: 'export:select-output-directory',
     extractCoverFrame: 'export:extract-cover-frame',
+    validate: 'export:validate',
     mp4: 'export:mp4'
   }
 } as const;

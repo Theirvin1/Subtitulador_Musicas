@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ExportMode, ExportQuality } from '../../shared/types/export';
+import type {
+  ExportMode,
+  ExportQuality,
+  ExportValidationResult
+} from '../../shared/types/export';
 import type { CustomFont } from '../../shared/types/font';
 import type { Project, SubtitleBlock } from '../../shared/types/project';
 import { exportService } from '../services/exportService';
@@ -19,6 +23,12 @@ const getDefaultName = (project: Project | null): string => {
   return project?.name ? project.name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_') : '';
 };
 
+const EMPTY_VALIDATION_RESULT: ExportValidationResult = {
+  errors: [],
+  warnings: [],
+  canExport: true
+};
+
 export const ExportModal = ({
   isOpen,
   project,
@@ -34,6 +44,9 @@ export const ExportModal = ({
   const [status, setStatus] = useState<ExportStatus>('idle');
   const [message, setMessage] = useState('');
   const [outputPaths, setOutputPaths] = useState<string[]>([]);
+  const [validationResult, setValidationResult] = useState<ExportValidationResult>(
+    EMPTY_VALIDATION_RESULT
+  );
 
   useEffect(() => {
     if (!isOpen) {
@@ -44,6 +57,7 @@ export const ExportModal = ({
     setStatus('idle');
     setMessage('');
     setOutputPaths([]);
+    setValidationResult(EMPTY_VALIDATION_RESULT);
     void projectStorage.getSettings().then((settings) => {
       if (settings.lastExportDirectory) {
         setOutputDirectory(settings.lastExportDirectory);
@@ -51,42 +65,50 @@ export const ExportModal = ({
     });
   }, [isOpen, project]);
 
-  const validationError = useMemo(() => {
-    if (!project) {
-      return 'Crea un proyecto antes de exportar.';
+  const mode: ExportMode = useMemo(
+    () => (mp3Only ? 'MP3_ONLY' : exportMp3 ? 'MP4_AND_MP3' : 'MP4'),
+    [exportMp3, mp3Only]
+  );
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
     }
 
-    if (!project.videoPath && !project.audioPath) {
-      return 'Carga un audio o video antes de exportar.';
-    }
+    const validationTimer = window.setTimeout(() => {
+      void exportService
+        .validateBeforeExport({
+          project: project
+            ? {
+                ...project,
+                subtitleBlocks
+              }
+            : null,
+          outputName: videoName,
+          outputDirectory,
+          mode,
+          customFonts
+        })
+        .then(setValidationResult)
+        .catch((error) => {
+          setValidationResult({
+            errors: [
+              {
+                severity: 'error',
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : 'No se pudo validar el proyecto antes de exportar.'
+              }
+            ],
+            warnings: [],
+            canExport: false
+          });
+        });
+    }, 150);
 
-    if (!mp3Only && !project.videoPath && !project.backgroundPath) {
-      return 'Carga una imagen de fondo para exportar solo con audio.';
-    }
-
-    if (!mp3Only && !subtitleBlocks.some((block) => block.enabled)) {
-      return 'Agrega al menos un bloque de subtitulos activo.';
-    }
-
-    if (
-      !mp3Only &&
-      subtitleBlocks
-        .filter((block) => block.enabled)
-        .some((block) => block.startTime < 0 || block.endTime <= block.startTime)
-    ) {
-      return 'Corrige los tiempos de los subtitulos antes de exportar.';
-    }
-
-    if (!videoName.trim()) {
-      return 'Escribe un nombre para el video.';
-    }
-
-    if (!outputDirectory) {
-      return 'Selecciona una carpeta de salida.';
-    }
-
-    return '';
-  }, [mp3Only, outputDirectory, project, subtitleBlocks, videoName]);
+    return () => window.clearTimeout(validationTimer);
+  }, [customFonts, isOpen, mode, outputDirectory, project, subtitleBlocks, videoName]);
 
   if (!isOpen) {
     return null;
@@ -106,9 +128,27 @@ export const ExportModal = ({
   };
 
   const handleExport = async (): Promise<void> => {
-    if (!project || validationError) {
+    if (!project) {
       setStatus('error');
-      setMessage(validationError);
+      setMessage('No existe un proyecto activo.');
+      return;
+    }
+
+    const nextValidationResult = await exportService.validateBeforeExport({
+      project: {
+        ...project,
+        subtitleBlocks
+      },
+      outputName: videoName,
+      outputDirectory,
+      mode,
+      customFonts
+    });
+    setValidationResult(nextValidationResult);
+
+    if (!nextValidationResult.canExport) {
+      setStatus('error');
+      setMessage('No se puede exportar todavia. Revisa los errores marcados.');
       return;
     }
 
@@ -130,8 +170,6 @@ export const ExportModal = ({
             ? 'Exportando MP4 y MP3'
             : 'Exportando MP4 con subtitulos ASS'
       );
-
-      const mode: ExportMode = mp3Only ? 'MP3_ONLY' : exportMp3 ? 'MP4_AND_MP3' : 'MP4';
 
       const result = await exportService.exportMp4({
         project: {
@@ -160,6 +198,8 @@ export const ExportModal = ({
   };
 
   const isBusy = status === 'preparing' || status === 'exporting';
+  const validationIssuesCount =
+    validationResult.errors.length + validationResult.warnings.length;
 
   return (
     <div className="modal-backdrop" role="presentation">
@@ -255,8 +295,34 @@ export const ExportModal = ({
             </div>
           </dl>
 
-          {validationError && status !== 'finished' ? (
-            <p className="export-modal__message is-error">{validationError}</p>
+          {validationIssuesCount > 0 && status !== 'finished' ? (
+            <section
+              className="export-modal__validation"
+              role={validationResult.errors.length > 0 ? 'alert' : 'status'}
+              aria-label="Validacion antes de exportar"
+            >
+              {validationResult.errors.length > 0 ? (
+                <div className="export-modal__validation-errors">
+                  <strong>No se puede exportar todavia:</strong>
+                  <ul>
+                    {validationResult.errors.map((issue) => (
+                      <li key={`error-${issue.message}`}>{issue.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {validationResult.warnings.length > 0 ? (
+                <div className="export-modal__validation-warnings">
+                  <strong>Advertencias:</strong>
+                  <ul>
+                    {validationResult.warnings.map((issue) => (
+                      <li key={`warning-${issue.message}`}>{issue.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </section>
           ) : null}
 
           {message ? (
@@ -280,7 +346,7 @@ export const ExportModal = ({
             <button
               type="button"
               onClick={() => void handleExport()}
-              disabled={isBusy || Boolean(validationError)}
+              disabled={isBusy || !validationResult.canExport}
             >
               {isBusy ? 'Exportando...' : mp3Only ? 'Exportar MP3' : 'Exportar'}
             </button>
