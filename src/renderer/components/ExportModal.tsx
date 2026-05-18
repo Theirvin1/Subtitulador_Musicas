@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   ExportMode,
   ExportQuality,
-  ExportValidationResult
+  ExportValidationResult,
+  FfmpegAvailability
 } from '../../shared/types/export';
 import type { CustomFont } from '../../shared/types/font';
 import type { Project, SubtitleBlock } from '../../shared/types/project';
@@ -29,6 +30,12 @@ const EMPTY_VALIDATION_RESULT: ExportValidationResult = {
   canExport: true
 };
 
+const EMPTY_FFMPEG_STATUS: FfmpegAvailability = {
+  available: false,
+  source: 'missing',
+  message: 'Verificando FFmpeg...'
+};
+
 export const ExportModal = ({
   isOpen,
   project,
@@ -47,6 +54,7 @@ export const ExportModal = ({
   const [validationResult, setValidationResult] = useState<ExportValidationResult>(
     EMPTY_VALIDATION_RESULT
   );
+  const [ffmpegStatus, setFfmpegStatus] = useState<FfmpegAvailability>(EMPTY_FFMPEG_STATUS);
 
   useEffect(() => {
     if (!isOpen) {
@@ -58,6 +66,15 @@ export const ExportModal = ({
     setMessage('');
     setOutputPaths([]);
     setValidationResult(EMPTY_VALIDATION_RESULT);
+    setFfmpegStatus(EMPTY_FFMPEG_STATUS);
+    void exportService.checkFfmpeg().then(setFfmpegStatus).catch(() => {
+      setFfmpegStatus({
+        available: false,
+        source: 'missing',
+        message:
+          'No se encontro FFmpeg. Para exportar videos, instala FFmpeg o agrega ffmpeg.exe al PATH. Tambien puedes usar una version de la app que incluya FFmpeg.'
+      });
+    });
     void projectStorage.getSettings().then((settings) => {
       if (settings.lastExportDirectory) {
         setOutputDirectory(settings.lastExportDirectory);
@@ -174,10 +191,11 @@ export const ExportModal = ({
     setMessage('Preparando archivos temporales');
 
     try {
-      const hasFfmpeg = await exportService.checkFfmpeg();
+      const nextFfmpegStatus = await exportService.checkFfmpeg();
+      setFfmpegStatus(nextFfmpegStatus);
 
-      if (!hasFfmpeg) {
-        throw new Error('FFmpeg no esta disponible en el sistema.');
+      if (!nextFfmpegStatus.available) {
+        throw new Error(nextFfmpegStatus.message);
       }
 
       setStatus('exporting');
@@ -313,6 +331,23 @@ export const ExportModal = ({
             </div>
           </dl>
 
+          <section
+            className={
+              ffmpegStatus.available
+                ? 'export-modal__ffmpeg is-ready'
+                : 'export-modal__ffmpeg is-missing'
+            }
+            aria-label="Estado de FFmpeg"
+          >
+            <strong>{ffmpegStatus.available ? 'FFmpeg detectado' : 'FFmpeg no detectado'}</strong>
+            <span>{ffmpegStatus.message}</span>
+            {ffmpegStatus.available ? (
+              <small>
+                Origen: {ffmpegStatus.source === 'local' ? 'local incluido' : 'PATH del sistema'}
+              </small>
+            ) : null}
+          </section>
+
           {validationIssuesCount > 0 && status !== 'finished' ? (
             <section
               className="export-modal__validation"
@@ -364,7 +399,7 @@ export const ExportModal = ({
             <button
               type="button"
               onClick={() => void handleExport()}
-              disabled={isBusy || !validationResult.canExport}
+              disabled={isBusy || !validationResult.canExport || !ffmpegStatus.available}
             >
               {isBusy ? 'Exportando...' : mp3Only ? 'Exportar MP3' : 'Exportar'}
             </button>

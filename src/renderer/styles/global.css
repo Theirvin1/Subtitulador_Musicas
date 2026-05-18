@@ -2331,6 +2331,45 @@ body {
   color: #d8e1ec;
 }
 
+.export-modal__ffmpeg {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #3a4350;
+  border-radius: 8px;
+  background: rgba(18, 22, 27, 0.72);
+  padding: 12px;
+}
+
+.export-modal__ffmpeg strong {
+  color: #e7edf7;
+  font-size: 0.9rem;
+}
+
+.export-modal__ffmpeg span,
+.export-modal__ffmpeg small {
+  color: #9aa7b8;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.export-modal__ffmpeg.is-ready {
+  border-color: rgba(47, 143, 132, 0.78);
+  background: rgba(28, 69, 65, 0.28);
+}
+
+.export-modal__ffmpeg.is-ready strong {
+  color: #72d7ca;
+}
+
+.export-modal__ffmpeg.is-missing {
+  border-color: rgba(174, 66, 62, 0.58);
+  background: rgba(174, 66, 62, 0.16);
+}
+
+.export-modal__ffmpeg.is-missing strong {
+  color: #ffaaa6;
+}
+
 .history-modal__empty,
 .subtitle-blocks__empty,
 .cover-editor__empty {
