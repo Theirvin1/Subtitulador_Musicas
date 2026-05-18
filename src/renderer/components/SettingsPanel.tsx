@@ -349,6 +349,34 @@ export const SettingsPanel = ({
             </label>
           </div>
 
+          <div className="visual-editor__group">
+            <h3>Animaciones</h3>
+            <label className="settings-panel__field">
+              <span>Entrada</span>
+              <select
+                value={subtitleStyle?.fadeIn ? 'fade-in' : 'none'}
+                onChange={(event) =>
+                  onChangeSubtitleStyle({ fadeIn: event.target.value === 'fade-in' })
+                }
+              >
+                <option value="none">Ninguna</option>
+                <option value="fade-in">Fade in</option>
+              </select>
+            </label>
+            <label className="settings-panel__field">
+              <span>Salida</span>
+              <select
+                value={subtitleStyle?.fadeOut ? 'fade-out' : 'none'}
+                onChange={(event) =>
+                  onChangeSubtitleStyle({ fadeOut: event.target.value === 'fade-out' })
+                }
+              >
+                <option value="none">Ninguna</option>
+                <option value="fade-out">Fade out</option>
+              </select>
+            </label>
+          </div>
+
           <div className="visual-editor__actions">
             <button type="button" onClick={onCenterSubtitles}>
               Centrar horizontalmente

@@ -750,6 +750,7 @@ export const EditorPage = (): JSX.Element => {
           <PreviewCanvas
             activeProject={activeProject}
             activeSubtitleBlock={activeSubtitleBlock}
+            currentTime={currentTime}
             mediaRef={mediaRef}
           />
           <PlaybackControls

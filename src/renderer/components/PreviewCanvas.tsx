@@ -7,6 +7,7 @@ import { toFileUrl } from '../services/fileUrl';
 type PreviewCanvasProps = {
   activeProject: Project | null;
   activeSubtitleBlock: SubtitleBlock | null;
+  currentTime: number;
   mediaRef: RefObject<HTMLMediaElement>;
 };
 
@@ -35,9 +36,33 @@ const buildSubtitlePosition = (
   };
 };
 
+const getSubtitleOpacity = (
+  style: SubtitleStyle,
+  block: SubtitleBlock | null,
+  currentTime: number
+): number => {
+  if (!block) {
+    return 1;
+  }
+
+  const fadeDuration = 0.3;
+  let opacity = 1;
+
+  if (style.fadeIn) {
+    opacity = Math.min(opacity, Math.min(1, (currentTime - block.startTime) / fadeDuration));
+  }
+
+  if (style.fadeOut) {
+    opacity = Math.min(opacity, Math.min(1, (block.endTime - currentTime) / fadeDuration));
+  }
+
+  return Math.max(0, opacity);
+};
+
 export const PreviewCanvas = ({
   activeProject,
   activeSubtitleBlock,
+  currentTime,
   mediaRef
 }: PreviewCanvasProps): JSX.Element => {
   const backgroundUrl = toFileUrl(activeProject?.backgroundPath);
@@ -47,6 +72,7 @@ export const PreviewCanvas = ({
   const previewHeight = activeProject?.height ?? preset.height;
   const subtitleStyle =
     activeProject?.subtitleStyle ?? createDefaultSubtitleStyle(previewWidth, previewHeight);
+  const subtitleOpacity = getSubtitleOpacity(subtitleStyle, activeSubtitleBlock, currentTime);
 
   return (
     <section className="preview-canvas" aria-label="Vista previa del video">
@@ -77,7 +103,7 @@ export const PreviewCanvas = ({
           )}
 
           {activeSubtitleBlock ? (
-            <div className="preview-canvas__subtitles">
+            <div className="preview-canvas__subtitles" style={{ opacity: subtitleOpacity }}>
               <p
                 className="preview-canvas__subtitle-line preview-canvas__subtitle-line--original"
                 style={buildSubtitlePosition(

@@ -102,6 +102,9 @@ const createAssDialogue = (
   const x = Math.round(isOriginal ? style.xOriginal : style.xTranslation);
   const y = Math.round(isOriginal ? style.yOriginal : style.yTranslation);
   const text = isOriginal ? block.originalText : block.translatedText;
+  const fadeTag = style.fadeIn || style.fadeOut
+    ? `\\fad(${style.fadeIn ? 300 : 0},${style.fadeOut ? 300 : 0})`
+    : '';
 
   return [
     'Dialogue: 0',
@@ -113,7 +116,7 @@ const createAssDialogue = (
     '0',
     '0',
     '',
-    `{\\pos(${x},${y})}${escapeAssText(text)}`
+    `{\\pos(${x},${y})${fadeTag}}${escapeAssText(text)}`
   ].join(',');
 };
 
