@@ -1,4 +1,5 @@
 import type { Project } from './project';
+import type { CustomFont } from './font';
 
 export type ExportQuality = 'MEDIUM' | 'HIGH' | 'MAXIMUM';
 
@@ -11,6 +12,7 @@ export type ExportRequest = {
   quality: ExportQuality;
   mode: ExportMode;
   fps: number;
+  customFonts: CustomFont[];
 };
 
 export type ExportResult = {

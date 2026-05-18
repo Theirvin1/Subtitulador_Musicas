@@ -1,12 +1,15 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import initSqlJs from 'sql.js';
+import type { CustomFont } from '../../shared/types/font';
 import type { AppSettings, Project, ProjectSummary } from '../../shared/types/project';
 import { DATABASE_MIGRATIONS, DATABASE_SCHEMA } from './schema';
 import {
   deleteProject,
+  addCustomFont,
   getAppSettings,
   isProjectPayload,
+  listCustomFonts,
   listProjects,
   openProject,
   saveProject,
@@ -22,6 +25,8 @@ export type AppDatabase = {
   deleteProject: (projectId: unknown) => boolean;
   getSettings: () => AppSettings;
   updateSettings: (settings: unknown) => AppSettings;
+  listCustomFonts: () => CustomFont[];
+  addCustomFont: (font: unknown) => CustomFont;
 };
 
 const DATABASE_FILE_NAME = 'submusic-studio.sqlite';
@@ -101,6 +106,23 @@ export const createDatabase = async (
       const updatedSettings = updateAppSettings(database, settings as AppSettings);
       persistDatabase(database, databasePath);
       return updatedSettings;
+    },
+    listCustomFonts() {
+      return listCustomFonts(database);
+    },
+    addCustomFont(font) {
+      if (
+        !font ||
+        typeof font !== 'object' ||
+        typeof (font as CustomFont).name !== 'string' ||
+        typeof (font as CustomFont).path !== 'string'
+      ) {
+        throw new Error('Invalid font payload.');
+      }
+
+      const savedFont = addCustomFont(database, font as CustomFont);
+      persistDatabase(database, databasePath);
+      return savedFont;
     }
   };
 };

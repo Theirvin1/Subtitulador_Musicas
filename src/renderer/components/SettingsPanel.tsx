@@ -3,6 +3,7 @@ import {
   type SubtitleStylePresetId
 } from '../../shared/constants/subtitleStyle';
 import { VIDEO_FORMAT_PRESETS } from '../../shared/constants/videoFormats';
+import type { CustomFont } from '../../shared/types/font';
 import type { Project, SubtitleStyle, VideoFormat } from '../../shared/types/project';
 import { getFileName, toFileUrl } from '../services/fileUrl';
 
@@ -20,6 +21,8 @@ type SettingsPanelProps = {
   onSendSubtitlesBottom: () => void;
   onResetSubtitleStyle: () => void;
   onApplySubtitleStylePreset: (presetId: SubtitleStylePresetId) => void;
+  customFonts: CustomFont[];
+  onAddCustomFont: () => void;
   autoSaveEnabled: boolean;
   onChangeAutoSave: (enabled: boolean) => void;
 };
@@ -38,12 +41,15 @@ export const SettingsPanel = ({
   onSendSubtitlesBottom,
   onResetSubtitleStyle,
   onApplySubtitleStylePreset,
+  customFonts,
+  onAddCustomFont,
   autoSaveEnabled,
   onChangeAutoSave
 }: SettingsPanelProps): JSX.Element => {
   const subtitleStyle = activeProject?.subtitleStyle;
   const width = activeProject?.width ?? 1920;
   const height = activeProject?.height ?? 1080;
+  const fontOptions = Array.from(new Set(['Inter', ...customFonts.map((font) => font.name)]));
 
   return (
     <aside className="settings-panel" aria-label="Configuracion del proyecto">
@@ -152,6 +158,43 @@ export const SettingsPanel = ({
               Seleccionar frame como portada
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="settings-panel__group">
+        <h2>Fuentes</h2>
+        <div className="font-editor">
+          <label className="settings-panel__field">
+            <span>Fuente original</span>
+            <select
+              value={subtitleStyle?.fontOriginal ?? 'Inter'}
+              onChange={(event) => onChangeSubtitleStyle({ fontOriginal: event.target.value })}
+            >
+              {fontOptions.map((fontName) => (
+                <option key={`original-${fontName}`} value={fontName}>
+                  {fontName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="settings-panel__field">
+            <span>Fuente traduccion</span>
+            <select
+              value={subtitleStyle?.fontTranslation ?? 'Inter'}
+              onChange={(event) =>
+                onChangeSubtitleStyle({ fontTranslation: event.target.value })
+              }
+            >
+              {fontOptions.map((fontName) => (
+                <option key={`translation-${fontName}`} value={fontName}>
+                  {fontName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" onClick={onAddCustomFont}>
+            Agregar fuente personalizada
+          </button>
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { ExportMode, ExportQuality } from '../../shared/types/export';
+import type { CustomFont } from '../../shared/types/font';
 import type { Project, SubtitleBlock } from '../../shared/types/project';
 import { exportService } from '../services/exportService';
 import { projectStorage } from '../services/projectStorage';
@@ -10,6 +11,7 @@ type ExportModalProps = {
   isOpen: boolean;
   project: Project | null;
   subtitleBlocks: SubtitleBlock[];
+  customFonts: CustomFont[];
   onClose: () => void;
 };
 
@@ -21,6 +23,7 @@ export const ExportModal = ({
   isOpen,
   project,
   subtitleBlocks,
+  customFonts,
   onClose
 }: ExportModalProps): JSX.Element | null => {
   const [videoName, setVideoName] = useState('');
@@ -139,7 +142,8 @@ export const ExportModal = ({
         outputDirectory,
         quality,
         mode,
-        fps: 30
+        fps: 30,
+        customFonts
       });
 
       setOutputPaths(

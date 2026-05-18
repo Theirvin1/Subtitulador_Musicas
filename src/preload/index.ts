@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type { ExportRequest, ExtractCoverFrameRequest } from '../shared/types/export';
+import type { CustomFont } from '../shared/types/font';
 import type { MediaKind } from '../shared/types/media';
 import type { AppSettings, Project } from '../shared/types/project';
 
@@ -15,6 +16,10 @@ const api = {
   settings: {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.settings.get),
     update: (settings: AppSettings) => ipcRenderer.invoke(IPC_CHANNELS.settings.update, settings)
+  },
+  fonts: {
+    list: (): Promise<CustomFont[]> => ipcRenderer.invoke(IPC_CHANNELS.fonts.list),
+    add: (): Promise<CustomFont | null> => ipcRenderer.invoke(IPC_CHANNELS.fonts.add)
   },
   media: {
     selectFile: (kind: MediaKind) => ipcRenderer.invoke(IPC_CHANNELS.media.selectFile, kind)

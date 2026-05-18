@@ -6,6 +6,7 @@ import {
   extractCoverFrame,
   selectOutputDirectory
 } from '../ffmpegService';
+import { selectFontFile } from '../fonts';
 import { selectMediaFile } from '../media';
 import type { AppDatabase } from '../database';
 
@@ -32,6 +33,16 @@ export const registerIpcHandlers = (database: AppDatabase): void => {
 
   ipcMain.handle(IPC_CHANNELS.settings.update, (_event, settings: unknown) => {
     return database.updateSettings(settings);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.fonts.list, () => {
+    return database.listCustomFonts();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.fonts.add, async () => {
+    const font = await selectFontFile();
+
+    return font ? database.addCustomFont(font) : null;
   });
 
   ipcMain.handle(IPC_CHANNELS.media.selectFile, (_event, kind: unknown) => {

@@ -9,6 +9,10 @@ export const IPC_CHANNELS = {
     get: 'settings:get',
     update: 'settings:update'
   },
+  fonts: {
+    list: 'fonts:list',
+    add: 'fonts:add'
+  },
   media: {
     selectFile: 'media:select-file'
   },
