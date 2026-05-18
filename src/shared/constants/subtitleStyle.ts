@@ -30,7 +30,9 @@ export const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
   yOriginal: 860,
   xTranslation: 960,
   yTranslation: 930,
-  moveTogether: true
+  moveTogether: true,
+  fadeIn: false,
+  fadeOut: false
 };
 
 export const createDefaultSubtitleStyle = (

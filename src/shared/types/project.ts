@@ -62,6 +62,8 @@ export type SubtitleStyle = {
   xTranslation: number;
   yTranslation: number;
   moveTogether: boolean;
+  fadeIn: boolean;
+  fadeOut: boolean;
 };
 
 export type AppSettings = {

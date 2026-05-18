@@ -342,6 +342,7 @@ video.preview-canvas__media {
   z-index: 2;
   pointer-events: none;
   text-align: center;
+  transition: opacity 120ms linear;
 }
 
 .preview-canvas__subtitle-line {

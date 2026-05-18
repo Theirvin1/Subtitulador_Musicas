@@ -55,7 +55,9 @@ const isSubtitleStylePayload = (value: unknown): value is SubtitleStyle => {
     Number.isFinite(style.yOriginal) &&
     Number.isFinite(style.xTranslation) &&
     Number.isFinite(style.yTranslation) &&
-    typeof style.moveTogether === 'boolean'
+    typeof style.moveTogether === 'boolean' &&
+    typeof style.fadeIn === 'boolean' &&
+    typeof style.fadeOut === 'boolean'
   );
 };
 
@@ -125,7 +127,10 @@ const mapSubtitleStyleRow = (
     moveTogether:
       row.move_together === undefined
         ? defaultStyle.moveTogether
-        : row.move_together === 1 || row.move_together === '1'
+        : row.move_together === 1 || row.move_together === '1',
+    fadeIn: row.fade_in === undefined ? defaultStyle.fadeIn : row.fade_in === 1 || row.fade_in === '1',
+    fadeOut:
+      row.fade_out === undefined ? defaultStyle.fadeOut : row.fade_out === 1 || row.fade_out === '1'
   };
 };
 
@@ -362,7 +367,9 @@ export const saveProject = (database: Database, project: Project): Project => {
       y_original,
       x_translation,
       y_translation,
-      move_together
+      move_together,
+      fade_in,
+      fade_out
     )
     VALUES (
       $id,
@@ -382,7 +389,9 @@ export const saveProject = (database: Database, project: Project): Project => {
       $yOriginal,
       $xTranslation,
       $yTranslation,
-      $moveTogether
+      $moveTogether,
+      $fadeIn,
+      $fadeOut
     )
     ON CONFLICT(project_id) DO UPDATE SET
       font_family = excluded.font_family,
@@ -398,7 +407,9 @@ export const saveProject = (database: Database, project: Project): Project => {
       y_original = excluded.y_original,
       x_translation = excluded.x_translation,
       y_translation = excluded.y_translation,
-      move_together = excluded.move_together
+      move_together = excluded.move_together,
+      fade_in = excluded.fade_in,
+      fade_out = excluded.fade_out
     `,
     {
       $id: `${updatedProject.id}:default`,
@@ -418,7 +429,9 @@ export const saveProject = (database: Database, project: Project): Project => {
       $yOriginal: updatedProject.subtitleStyle.yOriginal,
       $xTranslation: updatedProject.subtitleStyle.xTranslation,
       $yTranslation: updatedProject.subtitleStyle.yTranslation,
-      $moveTogether: updatedProject.subtitleStyle.moveTogether ? 1 : 0
+      $moveTogether: updatedProject.subtitleStyle.moveTogether ? 1 : 0,
+      $fadeIn: updatedProject.subtitleStyle.fadeIn ? 1 : 0,
+      $fadeOut: updatedProject.subtitleStyle.fadeOut ? 1 : 0
     }
   );
 
@@ -467,6 +480,8 @@ export const listProjects = (database: Database): ProjectSummary[] => {
       subtitle_styles.x_translation,
       subtitle_styles.y_translation,
       subtitle_styles.move_together,
+      subtitle_styles.fade_in,
+      subtitle_styles.fade_out,
       projects.created_at AS created_at,
       projects.updated_at AS updated_at
     FROM projects
@@ -506,6 +521,8 @@ export const openProject = (database: Database, projectId: string): Project | nu
         subtitle_styles.x_translation,
         subtitle_styles.y_translation,
         subtitle_styles.move_together,
+        subtitle_styles.fade_in,
+        subtitle_styles.fade_out,
         projects.created_at AS created_at,
         projects.updated_at AS updated_at
       FROM projects

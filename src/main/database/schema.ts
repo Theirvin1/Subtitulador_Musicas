@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS subtitle_styles (
   x_translation REAL NOT NULL DEFAULT 960,
   y_translation REAL NOT NULL DEFAULT 930,
   move_together INTEGER NOT NULL DEFAULT 1,
+  fade_in INTEGER NOT NULL DEFAULT 0,
+  fade_out INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -78,5 +80,7 @@ export const DATABASE_MIGRATIONS = [
   'ALTER TABLE subtitle_styles ADD COLUMN x_translation REAL NOT NULL DEFAULT 960',
   'ALTER TABLE subtitle_styles ADD COLUMN y_translation REAL NOT NULL DEFAULT 930',
   'ALTER TABLE subtitle_styles ADD COLUMN move_together INTEGER NOT NULL DEFAULT 1',
+  'ALTER TABLE subtitle_styles ADD COLUMN fade_in INTEGER NOT NULL DEFAULT 0',
+  'ALTER TABLE subtitle_styles ADD COLUMN fade_out INTEGER NOT NULL DEFAULT 0',
   'ALTER TABLE subtitle_blocks ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1'
 ];
