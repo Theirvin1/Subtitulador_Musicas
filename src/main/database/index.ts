@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import initSqlJs from 'sql.js';
+import { createRequire } from 'node:module';
+import { app } from 'electron';
+import type initSqlJsType from 'sql.js';
 import type { CustomFont } from '../../shared/types/font';
 import type { AppSettings, Project, ProjectSummary } from '../../shared/types/project';
 import { DATABASE_MIGRATIONS, DATABASE_SCHEMA } from './schema';
@@ -16,7 +18,10 @@ import {
   updateAppSettings
 } from './projectRepository';
 
-type Database = initSqlJs.Database;
+const nodeRequire = createRequire(import.meta.url);
+const initSqlJs = nodeRequire('sql.js') as typeof initSqlJsType;
+
+type Database = initSqlJsType.Database;
 
 export type AppDatabase = {
   saveProject: (project: unknown) => Project;
@@ -30,6 +35,12 @@ export type AppDatabase = {
 };
 
 const DATABASE_FILE_NAME = 'submusic-studio.sqlite';
+const getSqlWasmDirectory = (appPath: string): string => {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'sqljs')
+    : join(appPath, 'node_modules', 'sql.js', 'dist');
+};
+const SQL_WASM_FILE_NAME = 'sql-wasm.wasm';
 
 const persistDatabase = (database: Database, databasePath: string): void => {
   writeFileSync(databasePath, database.export());
@@ -42,8 +53,16 @@ export const createDatabase = async (
   mkdirSync(userDataPath, { recursive: true });
 
   const databasePath = join(userDataPath, DATABASE_FILE_NAME);
+  const sqlWasmDirectory = getSqlWasmDirectory(appPath);
+  const sqlWasmPath = join(sqlWasmDirectory, SQL_WASM_FILE_NAME);
+  const sqlWasmBuffer = readFileSync(sqlWasmPath);
+  const sqlWasmBinary = sqlWasmBuffer.buffer.slice(
+    sqlWasmBuffer.byteOffset,
+    sqlWasmBuffer.byteOffset + sqlWasmBuffer.byteLength
+  );
   const SQL = await initSqlJs({
-    locateFile: (file) => join(appPath, 'node_modules', 'sql.js', 'dist', file)
+    locateFile: (file) => join(sqlWasmDirectory, file),
+    wasmBinary: sqlWasmBinary
   });
 
   const database = existsSync(databasePath)
