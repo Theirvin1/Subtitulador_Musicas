@@ -7,11 +7,14 @@ import type {
   ExportQuality,
   ExportRequest,
   ExportResult,
+  ExportValidationRequest,
+  ExportValidationResult,
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from '../shared/types/export';
 import type { CustomFont } from '../shared/types/font';
 import type { Project, SubtitleBlock, SubtitleStyle } from '../shared/types/project';
+import { validateExportRequestBeforeExport } from '../shared/validation/exportValidation';
 
 const FFMPEG_BINARY = 'ffmpeg';
 
@@ -248,6 +251,14 @@ const validateExportRequest = (request: unknown): ExportRequest => {
     throw new Error('Selecciona una carpeta de salida.');
   }
 
+  const validation = validateExportRequestBeforeExport(exportRequest, existsSync);
+  if (!validation.canExport) {
+    throw new Error(
+      ['No se puede exportar todavia:', ...validation.errors.map((issue) => `- ${issue.message}`)]
+        .join('\n')
+    );
+  }
+
   return {
     ...exportRequest,
     fps: 30,
@@ -255,6 +266,20 @@ const validateExportRequest = (request: unknown): ExportRequest => {
     mode,
     outputName: sanitizeOutputName(exportRequest.outputName)
   };
+};
+
+export const validateProjectBeforeExport = (
+  request: unknown
+): ExportValidationResult => {
+  if (!request || typeof request !== 'object') {
+    return {
+      errors: [{ severity: 'error', message: 'Solicitud de validacion invalida.' }],
+      warnings: [],
+      canExport: false
+    };
+  }
+
+  return validateExportRequestBeforeExport(request as ExportValidationRequest, existsSync);
 };
 
 const createVideoFilter = (project: Project, assFileName: string): string => {

@@ -4,6 +4,8 @@ import type { MediaFile, MediaKind } from './media';
 import type {
   ExportRequest,
   ExportResult,
+  ExportValidationRequest,
+  ExportValidationResult,
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from './export';
@@ -37,6 +39,7 @@ declare global {
         extractCoverFrame: (
           request: ExtractCoverFrameRequest
         ) => Promise<ExtractCoverFrameResult>;
+        validate: (request: ExportValidationRequest) => Promise<ExportValidationResult>;
         mp4: (request: ExportRequest) => Promise<ExportResult>;
       };
     };

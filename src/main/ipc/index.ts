@@ -4,7 +4,8 @@ import {
   checkFfmpegAvailable,
   exportMp4,
   extractCoverFrame,
-  selectOutputDirectory
+  selectOutputDirectory,
+  validateProjectBeforeExport
 } from '../ffmpegService';
 import { selectFontFile } from '../fonts';
 import { selectMediaFile } from '../media';
@@ -59,6 +60,10 @@ export const registerIpcHandlers = (database: AppDatabase): void => {
 
   ipcMain.handle(IPC_CHANNELS.export.extractCoverFrame, (_event, request: unknown) => {
     return extractCoverFrame(request);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.export.validate, (_event, request: unknown) => {
+    return validateProjectBeforeExport(request);
   });
 
   ipcMain.handle(IPC_CHANNELS.export.mp4, (_event, request: unknown) => {

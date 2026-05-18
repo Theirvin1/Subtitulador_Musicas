@@ -15,6 +15,27 @@ export type ExportRequest = {
   customFonts: CustomFont[];
 };
 
+export type ExportValidationIssueSeverity = 'error' | 'warning';
+
+export type ExportValidationIssue = {
+  severity: ExportValidationIssueSeverity;
+  message: string;
+};
+
+export type ExportValidationRequest = {
+  project: Project | null;
+  outputName: string;
+  outputDirectory: string;
+  mode: ExportMode;
+  customFonts: CustomFont[];
+};
+
+export type ExportValidationResult = {
+  errors: ExportValidationIssue[];
+  warnings: ExportValidationIssue[];
+  canExport: boolean;
+};
+
 export type ExportResult = {
   outputDirectory: string;
   mp4Path?: string;
