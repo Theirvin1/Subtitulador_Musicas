@@ -12,12 +12,14 @@
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sql.js": "^1.14.1"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^33.2.1",
     "electron-vite": "^2.3.0",
