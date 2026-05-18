@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import ffmpegPath from 'ffmpeg-static';
 
@@ -9,6 +9,12 @@ if (!ffmpegPath || !existsSync(ffmpegPath)) {
 }
 
 mkdirSync(dirname(targetPath), { recursive: true });
+
+if (existsSync(targetPath) && statSync(targetPath).size === statSync(ffmpegPath).size) {
+  console.log(`FFmpeg ya esta preparado en ${targetPath}`);
+  process.exit(0);
+}
+
 copyFileSync(ffmpegPath, targetPath);
 
 console.log(`FFmpeg preparado en ${targetPath}`);
