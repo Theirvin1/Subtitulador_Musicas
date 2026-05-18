@@ -36,6 +36,17 @@ export type ExportValidationResult = {
   canExport: boolean;
 };
 
+export type ExportOutputCheckRequest = {
+  outputName: string;
+  outputDirectory: string;
+  mode: ExportMode;
+};
+
+export type ExportOutputCheckResult = {
+  exists: boolean;
+  paths: string[];
+};
+
 export type ExportResult = {
   outputDirectory: string;
   mp4Path?: string;

@@ -4,6 +4,8 @@ import type { MediaFile, MediaKind } from './media';
 import type {
   ExportRequest,
   ExportResult,
+  ExportOutputCheckRequest,
+  ExportOutputCheckResult,
   ExportValidationRequest,
   ExportValidationResult,
   ExtractCoverFrameRequest,
@@ -35,6 +37,7 @@ declare global {
       };
       export: {
         checkFfmpeg: () => Promise<boolean>;
+        checkOutput: (request: ExportOutputCheckRequest) => Promise<ExportOutputCheckResult>;
         selectOutputDirectory: () => Promise<string | null>;
         extractCoverFrame: (
           request: ExtractCoverFrameRequest

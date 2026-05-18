@@ -92,6 +92,12 @@ export const PreviewCanvas = ({
           ) : (
             <div className="preview-canvas__artwork">
               <div className="preview-canvas__disc" />
+              <strong>{activeProject ? 'Sin multimedia cargada' : 'Sin proyecto activo'}</strong>
+              <span>
+                {activeProject
+                  ? 'Carga audio, video o una imagen de fondo para previsualizar.'
+                  : 'Crea o abre un proyecto para empezar a editar.'}
+              </span>
               <div className="preview-canvas__waveform">
                 <span />
                 <span />

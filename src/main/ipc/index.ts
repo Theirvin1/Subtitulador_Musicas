@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { IPC_CHANNELS } from '../../shared/constants/ipc';
 import {
+  checkExportOutputExists,
   checkFfmpegAvailable,
   exportMp4,
   extractCoverFrame,
@@ -52,6 +53,10 @@ export const registerIpcHandlers = (database: AppDatabase): void => {
 
   ipcMain.handle(IPC_CHANNELS.export.checkFfmpeg, () => {
     return checkFfmpegAvailable();
+  });
+
+  ipcMain.handle(IPC_CHANNELS.export.checkOutput, (_event, request: unknown) => {
+    return checkExportOutputExists(request);
   });
 
   ipcMain.handle(IPC_CHANNELS.export.selectOutputDirectory, () => {

@@ -50,6 +50,9 @@ export const SettingsPanel = ({
   const width = activeProject?.width ?? 1920;
   const height = activeProject?.height ?? 1080;
   const fontOptions = Array.from(new Set(['Inter', ...customFonts.map((font) => font.name)]));
+  const hasAudio = Boolean(activeProject?.audioPath);
+  const hasVideo = Boolean(activeProject?.videoPath);
+  const hasBackground = Boolean(activeProject?.backgroundPath);
 
   return (
     <aside className="settings-panel" aria-label="Configuracion del proyecto">
@@ -107,28 +110,31 @@ export const SettingsPanel = ({
       <section className="settings-panel__group">
         <h2>Multimedia</h2>
         <div className="media-loader">
-          <div className="media-loader__item">
+          <div className={hasAudio ? 'media-loader__item is-loaded' : 'media-loader__item'}>
             <div>
               <span>Audio</span>
               <strong>{getFileName(activeProject?.audioPath)}</strong>
+              <small>{hasAudio ? 'Archivo cargado' : 'Sin audio'}</small>
             </div>
             <button type="button" onClick={onSelectAudio}>
               Cargar
             </button>
           </div>
-          <div className="media-loader__item">
+          <div className={hasVideo ? 'media-loader__item is-loaded' : 'media-loader__item'}>
             <div>
               <span>Video</span>
               <strong>{getFileName(activeProject?.videoPath)}</strong>
+              <small>{hasVideo ? 'Archivo cargado' : 'Sin video'}</small>
             </div>
             <button type="button" onClick={onSelectVideo}>
               Cargar
             </button>
           </div>
-          <div className="media-loader__item">
+          <div className={hasBackground ? 'media-loader__item is-loaded' : 'media-loader__item'}>
             <div>
               <span>Imagen de fondo</span>
               <strong>{getFileName(activeProject?.backgroundPath)}</strong>
+              <small>{hasBackground ? 'Archivo cargado' : 'Sin fondo'}</small>
             </div>
             <button type="button" onClick={onSelectBackground}>
               Cargar

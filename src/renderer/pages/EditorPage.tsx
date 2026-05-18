@@ -134,6 +134,7 @@ export const EditorPage = (): JSX.Element => {
     () => formatSaveStatus(saveStatus, lastSavedAt, saveError),
     [lastSavedAt, saveError, saveStatus, saveStatusTick]
   );
+  const hasUnsavedChanges = saveStatus === 'dirty' || saveStatus === 'error';
 
   useEffect(() => {
     void projectStorage.getSettings().then((settings) => {
@@ -267,11 +268,33 @@ export const EditorPage = (): JSX.Element => {
     await refreshHistory();
   };
 
+  const confirmDiscardUnsavedChanges = (): boolean => {
+    if (!activeProject || !hasUnsavedChanges) {
+      return true;
+    }
+
+    return window.confirm(
+      'Hay cambios sin guardar en el proyecto actual. Si continuas, podrias perderlos. Continuar?'
+    );
+  };
+
+  const handleRequestNewProject = (): void => {
+    if (!confirmDiscardUnsavedChanges()) {
+      return;
+    }
+
+    setIsNewProjectModalOpen(true);
+  };
+
   const handleSaveProject = async (): Promise<void> => {
     await persistActiveProject('manual');
   };
 
   const handleOpenProject = async (projectId: string): Promise<void> => {
+    if (!confirmDiscardUnsavedChanges()) {
+      return;
+    }
+
     const project = await projectStorage.openProject(projectId);
 
     if (project) {
@@ -854,7 +877,7 @@ export const EditorPage = (): JSX.Element => {
     <main className="editor-page">
       <TopBar
         activeProjectName={activeProject?.name}
-        onNewProject={() => setIsNewProjectModalOpen(true)}
+        onNewProject={handleRequestNewProject}
         onOpenHistory={() => {
           void handleOpenHistory();
         }}
