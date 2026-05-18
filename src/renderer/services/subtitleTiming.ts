@@ -36,7 +36,7 @@ export const getTimingFallbackMessage = (
   totalDuration?: number
 ): string | null => {
   if (mode === 'distribute' && (!totalDuration || totalDuration <= 0)) {
-    return 'Todavia no existe duracion de audio/video. Se usaran 2 segundos por bloque.';
+    return 'No se detecto duracion del audio/video. Se usaran 2 segundos por bloque.';
   }
 
   return null;
