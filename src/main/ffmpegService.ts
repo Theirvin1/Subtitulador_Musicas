@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
-import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { app, dialog } from 'electron';
 import type {
@@ -10,6 +10,7 @@ import type {
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from '../shared/types/export';
+import type { CustomFont } from '../shared/types/font';
 import type { Project, SubtitleBlock, SubtitleStyle } from '../shared/types/project';
 
 const FFMPEG_BINARY = 'ffmpeg';
@@ -254,12 +255,39 @@ const validateExportRequest = (request: unknown): ExportRequest => {
 };
 
 const createVideoFilter = (project: Project, assFileName: string): string => {
+  const fontFilter = project.subtitleStyle.fontOriginal || project.subtitleStyle.fontTranslation
+    ? ':fontsdir=fonts'
+    : '';
+
   return [
     `scale=${project.width}:${project.height}:force_original_aspect_ratio=increase`,
     `crop=${project.width}:${project.height}`,
     'setsar=1',
-    `ass=${assFileName}`
+    `ass=${assFileName}${fontFilter}`
   ].join(',');
+};
+
+const validateCustomFonts = (project: Project, customFonts: CustomFont[]): void => {
+  const selectedFonts = [project.subtitleStyle.fontOriginal, project.subtitleStyle.fontTranslation];
+
+  customFonts
+    .filter((font) => selectedFonts.includes(font.name))
+    .forEach((font) => {
+      if (!existsSync(font.path)) {
+        throw new Error(`La fuente "${font.name}" no existe o fue movida: ${font.path}`);
+      }
+    });
+};
+
+const copyCustomFontsToTemp = (customFonts: CustomFont[], tempDirectory: string): void => {
+  const fontsDirectory = join(tempDirectory, 'fonts');
+  mkdirSync(fontsDirectory, { recursive: true });
+
+  customFonts.forEach((font) => {
+    if (existsSync(font.path)) {
+      copyFileSync(font.path, join(fontsDirectory, basename(font.path)));
+    }
+  });
 };
 
 const writeExportCover = async (coverPath: string, exportDirectory: string): Promise<string> => {
@@ -317,6 +345,8 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
     throw new Error('FFmpeg no esta disponible en el sistema.');
   }
 
+  validateCustomFonts(exportRequest.project, exportRequest.customFonts ?? []);
+
   const tempDirectory = join(tmpdir(), `submusic-export-${Date.now()}`);
   const assFileName = 'subtitles.ass';
   const assPath = join(tempDirectory, assFileName);
@@ -342,6 +372,7 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
 
   mkdirSync(tempDirectory, { recursive: true });
   mkdirSync(exportDirectory, { recursive: true });
+  copyCustomFontsToTemp(exportRequest.customFonts ?? [], tempDirectory);
 
   if (shouldExportMp4) {
     writeFileSync(assPath, createAssFile(exportRequest.project, enabledBlocks), 'utf8');

@@ -1,5 +1,6 @@
 import type initSqlJs from 'sql.js';
 import { createDefaultSubtitleStyle } from '../../shared/constants/subtitleStyle';
+import type { CustomFont } from '../../shared/types/font';
 import type {
   AppSettings,
   Project,
@@ -11,6 +12,10 @@ import type {
 
 type Database = initSqlJs.Database;
 type SqlValue = initSqlJs.SqlValue;
+
+const createId = (prefix: string): string => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
 
 const VIDEO_FORMATS: VideoFormat[] = [
   'VERTICAL_9_16',
@@ -579,4 +584,64 @@ export const updateAppSettings = (
   }
 
   return settings;
+};
+
+export const listCustomFonts = (database: Database): CustomFont[] => {
+  const statement = database.prepare(
+    `
+    SELECT id, name, path, created_at
+    FROM custom_fonts
+    ORDER BY name ASC
+    `
+  );
+  const fonts: CustomFont[] = [];
+
+  try {
+    while (statement.step()) {
+      const row = statement.getAsObject();
+      fonts.push({
+        id: String(row.id),
+        name: String(row.name),
+        path: String(row.path),
+        createdAt: String(row.created_at)
+      });
+    }
+  } finally {
+    statement.free();
+  }
+
+  return fonts;
+};
+
+export const addCustomFont = (
+  database: Database,
+  font: Pick<CustomFont, 'name' | 'path'>
+): CustomFont => {
+  const now = new Date().toISOString();
+  const savedFont: CustomFont = {
+    id: createId('font'),
+    name: font.name,
+    path: font.path,
+    createdAt: now
+  };
+
+  database.run(
+    `
+    INSERT INTO custom_fonts (id, name, path, created_at)
+    VALUES ($id, $name, $path, $createdAt)
+    ON CONFLICT(path) DO UPDATE SET
+      name = excluded.name
+    `,
+    {
+      $id: savedFont.id,
+      $name: savedFont.name,
+      $path: savedFont.path,
+      $createdAt: savedFont.createdAt
+    }
+  );
+
+  return (
+    listCustomFonts(database).find((customFont) => customFont.path === savedFont.path) ??
+    savedFont
+  );
 };

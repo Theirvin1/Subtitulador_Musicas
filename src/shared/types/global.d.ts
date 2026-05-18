@@ -7,6 +7,7 @@ import type {
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from './export';
+import type { CustomFont } from './font';
 import type { AppSettings, Project, ProjectSummary } from './project';
 
 declare global {
@@ -22,6 +23,10 @@ declare global {
       settings: {
         get: () => Promise<AppSettings>;
         update: (settings: AppSettings) => Promise<AppSettings>;
+      };
+      fonts: {
+        list: () => Promise<CustomFont[]>;
+        add: () => Promise<CustomFont | null>;
       };
       media: {
         selectFile: (kind: MediaKind) => Promise<MediaFile | null>;

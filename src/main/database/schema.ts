@@ -59,6 +59,13 @@ CREATE TABLE IF NOT EXISTS app_settings (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS custom_fonts (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  path TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL
+);
 `;
 
 export const DATABASE_MIGRATIONS = [

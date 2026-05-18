@@ -13,6 +13,7 @@ import { useMediaPlayback } from '../hooks/useMediaPlayback';
 import { toFileUrl } from '../services/fileUrl';
 import { mediaService } from '../services/mediaService';
 import { exportService } from '../services/exportService';
+import { fontService } from '../services/fontService';
 import { projectStorage } from '../services/projectStorage';
 import {
   normalizeTimeRange,
@@ -27,6 +28,7 @@ import {
 } from '../../shared/constants/subtitleStyle';
 import { getVideoFormatPreset } from '../../shared/constants/videoFormats';
 import type { MediaKind } from '../../shared/types/media';
+import type { CustomFont } from '../../shared/types/font';
 import type {
   ProjectSummary,
   SubtitleBlock,
@@ -96,6 +98,7 @@ export const EditorPage = (): JSX.Element => {
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [projectMessage, setProjectMessage] = useState('Proyecto en memoria');
   const [subtitleBlocks, setSubtitleBlocks] = useState<SubtitleBlock[]>([]);
+  const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -127,7 +130,26 @@ export const EditorPage = (): JSX.Element => {
     void projectStorage.getSettings().then((settings) => {
       setAutoSaveEnabled(settings.autoSaveEnabled);
     });
+    void fontService.list().then(setCustomFonts);
   }, []);
+
+  useEffect(() => {
+    customFonts.forEach((font) => {
+      const fontUrl = toFileUrl(font.path);
+
+      if (!fontUrl || document.fonts.check(`12px "${font.name}"`)) {
+        return;
+      }
+
+      const fontFace = new FontFace(font.name, `url("${fontUrl}")`);
+      void fontFace
+        .load()
+        .then((loadedFont) => {
+          document.fonts.add(loadedFont);
+        })
+        .catch(() => undefined);
+    });
+  }, [customFonts]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -449,6 +471,19 @@ export const EditorPage = (): JSX.Element => {
     });
   };
 
+  const handleAddCustomFont = async (): Promise<void> => {
+    try {
+      const font = await fontService.add();
+
+      if (font) {
+        setCustomFonts(await fontService.list());
+        setProjectMessage(`Fuente agregada: ${font.name}`);
+      }
+    } catch (error) {
+      setProjectMessage(error instanceof Error ? error.message : 'Error al agregar fuente');
+    }
+  };
+
   const handleOpenAddLyrics = (): void => {
     if (!activeProject) {
       setProjectMessage('Crea un proyecto antes de agregar texto');
@@ -762,6 +797,10 @@ export const EditorPage = (): JSX.Element => {
           onSendSubtitlesBottom={handleSendSubtitlesBottom}
           onResetSubtitleStyle={handleResetSubtitleStyle}
           onApplySubtitleStylePreset={handleApplySubtitleStylePreset}
+          customFonts={customFonts}
+          onAddCustomFont={() => {
+            void handleAddCustomFont();
+          }}
           autoSaveEnabled={autoSaveEnabled}
           onChangeAutoSave={handleChangeAutoSave}
         />
@@ -795,6 +834,7 @@ export const EditorPage = (): JSX.Element => {
         isOpen={isExportModalOpen}
         project={activeProject}
         subtitleBlocks={subtitleBlocks}
+        customFonts={customFonts}
         onClose={() => setIsExportModalOpen(false)}
       />
 
