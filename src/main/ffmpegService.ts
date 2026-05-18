@@ -11,6 +11,7 @@ import type {
   ExportResult,
   ExportValidationRequest,
   ExportValidationResult,
+  FfmpegAvailability,
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from '../shared/types/export';
@@ -19,6 +20,8 @@ import type { Project, SubtitleBlock, SubtitleStyle } from '../shared/types/proj
 import { validateExportRequestBeforeExport } from '../shared/validation/exportValidation';
 
 const FFMPEG_BINARY = 'ffmpeg';
+const LOCAL_FFMPEG_RELATIVE_PATH = join('ffmpeg', 'win', 'ffmpeg.exe');
+const DEV_FFMPEG_RELATIVE_PATH = join('resources', 'ffmpeg', 'win', 'ffmpeg.exe');
 
 const QUALITY_SETTINGS: Record<
   ExportQuality,
@@ -29,9 +32,9 @@ const QUALITY_SETTINGS: Record<
   MAXIMUM: { crf: '14', preset: 'slower', audioBitrate: '320k' }
 };
 
-const runFfmpeg = (args: string[], cwd?: string): Promise<void> => {
+const runFfmpegBinary = (binaryPath: string, args: string[], cwd?: string): Promise<void> => {
   return new Promise((resolveProcess, rejectProcess) => {
-    const ffmpeg = spawn(FFMPEG_BINARY, args, {
+    const ffmpeg = spawn(binaryPath, args, {
       cwd,
       windowsHide: true
     });
@@ -55,13 +58,53 @@ const runFfmpeg = (args: string[], cwd?: string): Promise<void> => {
   });
 };
 
-export const checkFfmpegAvailable = async (): Promise<boolean> => {
+const getLocalFfmpegPath = (): string => {
+  return app.isPackaged
+    ? join(process.resourcesPath, LOCAL_FFMPEG_RELATIVE_PATH)
+    : resolve(process.cwd(), DEV_FFMPEG_RELATIVE_PATH);
+};
+
+const testFfmpegBinary = async (binaryPath: string): Promise<boolean> => {
   try {
-    await runFfmpeg(['-version']);
+    await runFfmpegBinary(binaryPath, ['-version']);
     return true;
   } catch {
     return false;
   }
+};
+
+export const checkFfmpegAvailability = async (): Promise<FfmpegAvailability> => {
+  const localFfmpegPath = getLocalFfmpegPath();
+
+  if (existsSync(localFfmpegPath) && (await testFfmpegBinary(localFfmpegPath))) {
+    console.info(`[SubMusic Studio] FFmpeg local incluido detectado: ${localFfmpegPath}`);
+    return {
+      available: true,
+      source: 'local',
+      binaryPath: localFfmpegPath,
+      message: 'FFmpeg disponible. La exportacion esta lista.'
+    };
+  }
+
+  if (await testFfmpegBinary(FFMPEG_BINARY)) {
+    console.info('[SubMusic Studio] FFmpeg detectado en PATH del sistema.');
+    return {
+      available: true,
+      source: 'path',
+      binaryPath: FFMPEG_BINARY,
+      message: 'FFmpeg disponible desde el PATH del sistema. La exportacion esta lista.'
+    };
+  }
+
+  console.warn(
+    `[SubMusic Studio] FFmpeg no detectado. Ruta local revisada: ${localFfmpegPath}`
+  );
+  return {
+    available: false,
+    source: 'missing',
+    message:
+      'No se encontro FFmpeg. Para exportar videos, instala FFmpeg o agrega ffmpeg.exe al PATH. Tambien puedes usar una version de la app que incluya FFmpeg.'
+  };
 };
 
 export const selectOutputDirectory = async (): Promise<string | null> => {
@@ -346,7 +389,11 @@ const copyCustomFontsToTemp = (customFonts: CustomFont[], tempDirectory: string)
   });
 };
 
-const writeExportCover = async (coverPath: string, exportDirectory: string): Promise<string> => {
+const writeExportCover = async (
+  coverPath: string,
+  exportDirectory: string,
+  ffmpegBinaryPath: string
+): Promise<string> => {
   const outputCoverPath = resolve(exportDirectory, 'portada.png');
 
   if (coverPath.toLowerCase().endsWith('.png')) {
@@ -354,7 +401,14 @@ const writeExportCover = async (coverPath: string, exportDirectory: string): Pro
     return outputCoverPath;
   }
 
-  await runFfmpeg(['-y', '-i', coverPath, '-frames:v', '1', outputCoverPath]);
+  await runFfmpegBinary(ffmpegBinaryPath, [
+    '-y',
+    '-i',
+    coverPath,
+    '-frames:v',
+    '1',
+    outputCoverPath
+  ]);
   return outputCoverPath;
 };
 
@@ -370,35 +424,38 @@ export const extractCoverFrame = async (
     throw new Error('Carga un video antes de seleccionar un frame como portada.');
   }
 
-  const hasFfmpeg = await checkFfmpegAvailable();
-  if (!hasFfmpeg) {
-    throw new Error('FFmpeg no esta disponible en el sistema.');
+  const ffmpegAvailability = await checkFfmpegAvailability();
+  if (!ffmpegAvailability.available || !ffmpegAvailability.binaryPath) {
+    throw new Error(ffmpegAvailability.message);
   }
 
   const coverDirectory = getProjectCoverDirectory(frameRequest.projectId);
   mkdirSync(coverDirectory, { recursive: true });
 
   const coverPath = join(coverDirectory, `cover-${Date.now()}.png`);
-  await runFfmpeg([
-    '-y',
-    '-ss',
-    String(Math.max(0, frameRequest.currentTime)),
-    '-i',
-    frameRequest.videoPath,
-    '-frames:v',
-    '1',
-    coverPath
-  ]);
+  await runFfmpegBinary(
+    ffmpegAvailability.binaryPath,
+    [
+      '-y',
+      '-ss',
+      String(Math.max(0, frameRequest.currentTime)),
+      '-i',
+      frameRequest.videoPath,
+      '-frames:v',
+      '1',
+      coverPath
+    ]
+  );
 
   return { coverPath };
 };
 
 export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
   const exportRequest = validateExportRequest(request);
-  const hasFfmpeg = await checkFfmpegAvailable();
+  const ffmpegAvailability = await checkFfmpegAvailability();
 
-  if (!hasFfmpeg) {
-    throw new Error('FFmpeg no esta disponible en el sistema.');
+  if (!ffmpegAvailability.available || !ffmpegAvailability.binaryPath) {
+    throw new Error(ffmpegAvailability.message);
   }
 
   validateCustomFonts(exportRequest.project, exportRequest.customFonts ?? []);
@@ -508,15 +565,19 @@ export const exportMp4 = async (request: unknown): Promise<ExportResult> => {
 
   try {
     if (shouldExportMp4) {
-      await runFfmpeg(mp4Args, tempDirectory);
+      await runFfmpegBinary(ffmpegAvailability.binaryPath, mp4Args, tempDirectory);
     }
 
     if (shouldExportMp3) {
-      await runFfmpeg(mp3Args);
+      await runFfmpegBinary(ffmpegAvailability.binaryPath, mp3Args);
     }
 
     if (exportRequest.project.coverPath) {
-      coverPath = await writeExportCover(exportRequest.project.coverPath, exportDirectory);
+      coverPath = await writeExportCover(
+        exportRequest.project.coverPath,
+        exportDirectory,
+        ffmpegAvailability.binaryPath
+      );
     }
   } finally {
     rmSync(tempDirectory, { recursive: true, force: true });

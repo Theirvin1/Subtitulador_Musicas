@@ -5,12 +5,13 @@ import type {
   ExportOutputCheckResult,
   ExportValidationRequest,
   ExportValidationResult,
+  FfmpegAvailability,
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from '../../shared/types/export';
 
 export const exportService = {
-  checkFfmpeg(): Promise<boolean> {
+  checkFfmpeg(): Promise<FfmpegAvailability> {
     return window.subMusic.export.checkFfmpeg();
   },
   checkOutput(request: ExportOutputCheckRequest): Promise<ExportOutputCheckResult> {

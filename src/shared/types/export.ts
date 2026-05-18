@@ -47,6 +47,13 @@ export type ExportOutputCheckResult = {
   paths: string[];
 };
 
+export type FfmpegAvailability = {
+  available: boolean;
+  source: 'local' | 'path' | 'missing';
+  binaryPath?: string;
+  message: string;
+};
+
 export type ExportResult = {
   outputDirectory: string;
   mp4Path?: string;

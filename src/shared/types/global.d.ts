@@ -8,6 +8,7 @@ import type {
   ExportOutputCheckResult,
   ExportValidationRequest,
   ExportValidationResult,
+  FfmpegAvailability,
   ExtractCoverFrameRequest,
   ExtractCoverFrameResult
 } from './export';
@@ -36,7 +37,7 @@ declare global {
         selectFile: (kind: MediaKind) => Promise<MediaFile | null>;
       };
       export: {
-        checkFfmpeg: () => Promise<boolean>;
+        checkFfmpeg: () => Promise<FfmpegAvailability>;
         checkOutput: (request: ExportOutputCheckRequest) => Promise<ExportOutputCheckResult>;
         selectOutputDirectory: () => Promise<string | null>;
         extractCoverFrame: (
