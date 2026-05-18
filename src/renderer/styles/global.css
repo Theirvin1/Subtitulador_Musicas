@@ -287,6 +287,59 @@ button {
   gap: 24px;
 }
 
+.preview-canvas__empty {
+  display: grid;
+  width: min(520px, 92%);
+  min-height: min(360px, 74%);
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 34px;
+  border: 1px dashed rgba(133, 150, 172, 0.32);
+  border-radius: 8px;
+  background: rgba(13, 17, 23, 0.58);
+  color: #dbe5ef;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.preview-canvas__empty-label {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(50, 64, 82, 0.86);
+  color: #b9c6d6;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.preview-canvas__empty strong {
+  margin-top: 2px;
+  color: #ffffff;
+  font-size: 1.18rem;
+}
+
+.preview-canvas__empty p {
+  max-width: 380px;
+  margin: 0;
+  color: #aeb9c8;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.preview-canvas__empty small {
+  color: #77d6ca;
+  font-size: 0.83rem;
+  font-weight: 900;
+}
+
+.preview-canvas__empty .preview-canvas__artwork {
+  gap: 14px;
+  padding: 0;
+}
+
 .preview-canvas__media {
   width: 100%;
   height: 100%;
@@ -306,11 +359,20 @@ video.preview-canvas__media {
   box-shadow: 0 0 0 18px rgba(255, 255, 255, 0.08);
 }
 
+.preview-canvas__empty .preview-canvas__disc {
+  width: clamp(78px, 10vw, 118px);
+  border-width: 14px;
+}
+
 .preview-canvas__waveform {
   display: flex;
   align-items: center;
   gap: 8px;
   height: 52px;
+}
+
+.preview-canvas__empty .preview-canvas__waveform {
+  height: 36px;
 }
 
 .preview-canvas__waveform span {

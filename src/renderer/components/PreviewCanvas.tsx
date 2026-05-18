@@ -73,31 +73,65 @@ export const PreviewCanvas = ({
   const subtitleStyle =
     activeProject?.subtitleStyle ?? createDefaultSubtitleStyle(previewWidth, previewHeight);
   const subtitleOpacity = getSubtitleOpacity(subtitleStyle, activeSubtitleBlock, currentTime);
+  const hasPreviewMedia = Boolean(videoUrl || backgroundUrl);
 
   return (
     <section className="preview-canvas" aria-label="Vista previa del video">
       <div className="preview-canvas__screen">
-        <div
-          className="preview-canvas__frame"
-          style={{ aspectRatio: `${previewWidth} / ${previewHeight}` }}
-        >
-          <span className="preview-canvas__badge">
-            {preset.shortLabel} - {previewWidth}x{previewHeight}
-          </span>
+        {hasPreviewMedia ? (
+          <div
+            className="preview-canvas__frame"
+            style={{ aspectRatio: `${previewWidth} / ${previewHeight}` }}
+          >
+            <span className="preview-canvas__badge">
+              {preset.shortLabel} - {previewWidth}x{previewHeight}
+            </span>
 
-          {videoUrl ? (
-            <video ref={mediaRef as RefObject<HTMLVideoElement>} className="preview-canvas__media" src={videoUrl} muted />
-          ) : backgroundUrl ? (
-            <img className="preview-canvas__media" src={backgroundUrl} alt="Fondo del proyecto" />
-          ) : (
-            <div className="preview-canvas__artwork">
+            {videoUrl ? (
+              <video
+                ref={mediaRef as RefObject<HTMLVideoElement>}
+                className="preview-canvas__media"
+                src={videoUrl}
+                muted
+              />
+            ) : (
+              <img className="preview-canvas__media" src={backgroundUrl} alt="Fondo del proyecto" />
+            )}
+
+            {activeSubtitleBlock ? (
+              <div className="preview-canvas__subtitles" style={{ opacity: subtitleOpacity }}>
+                <p
+                  className="preview-canvas__subtitle-line preview-canvas__subtitle-line--original"
+                  style={buildSubtitlePosition(
+                    subtitleStyle,
+                    previewWidth,
+                    previewHeight,
+                    'original'
+                  )}
+                >
+                  {activeSubtitleBlock.originalText}
+                </p>
+                {activeSubtitleBlock.translatedText ? (
+                  <span
+                    className="preview-canvas__subtitle-line preview-canvas__subtitle-line--translation"
+                    style={buildSubtitlePosition(
+                      subtitleStyle,
+                      previewWidth,
+                      previewHeight,
+                      'translation'
+                    )}
+                  >
+                    {activeSubtitleBlock.translatedText}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="preview-canvas__empty">
+            <span className="preview-canvas__empty-label">Vista previa</span>
+            <div className="preview-canvas__artwork" aria-hidden="true">
               <div className="preview-canvas__disc" />
-              <strong>{activeProject ? 'Sin multimedia cargada' : 'Sin proyecto activo'}</strong>
-              <span>
-                {activeProject
-                  ? 'Carga audio, video o una imagen de fondo para previsualizar.'
-                  : 'Crea o abre un proyecto para empezar a editar.'}
-              </span>
               <div className="preview-canvas__waveform">
                 <span />
                 <span />
@@ -106,37 +140,15 @@ export const PreviewCanvas = ({
                 <span />
               </div>
             </div>
-          )}
-
-          {activeSubtitleBlock ? (
-            <div className="preview-canvas__subtitles" style={{ opacity: subtitleOpacity }}>
-              <p
-                className="preview-canvas__subtitle-line preview-canvas__subtitle-line--original"
-                style={buildSubtitlePosition(
-                  subtitleStyle,
-                  previewWidth,
-                  previewHeight,
-                  'original'
-                )}
-              >
-                {activeSubtitleBlock.originalText}
-              </p>
-              {activeSubtitleBlock.translatedText ? (
-                <span
-                  className="preview-canvas__subtitle-line preview-canvas__subtitle-line--translation"
-                  style={buildSubtitlePosition(
-                    subtitleStyle,
-                    previewWidth,
-                    previewHeight,
-                    'translation'
-                  )}
-                >
-                  {activeSubtitleBlock.translatedText}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+            <strong>{activeProject ? 'Sin multimedia cargada' : 'Sin proyecto activo'}</strong>
+            <p>
+              {activeProject
+                ? 'Carga un video o una imagen de fondo para ver aqui el resultado del proyecto.'
+                : 'Crea o abre un proyecto para activar la vista previa del editor.'}
+            </p>
+            <small>{activeProject ? 'Usa el panel derecho de multimedia.' : 'Empieza con Nuevo.'}</small>
+          </div>
+        )}
       </div>
     </section>
   );
