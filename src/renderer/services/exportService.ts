@@ -1,6 +1,8 @@
 import type {
   ExportRequest,
   ExportResult,
+  ExportOutputCheckRequest,
+  ExportOutputCheckResult,
   ExportValidationRequest,
   ExportValidationResult,
   ExtractCoverFrameRequest,
@@ -10,6 +12,9 @@ import type {
 export const exportService = {
   checkFfmpeg(): Promise<boolean> {
     return window.subMusic.export.checkFfmpeg();
+  },
+  checkOutput(request: ExportOutputCheckRequest): Promise<ExportOutputCheckResult> {
+    return window.subMusic.export.checkOutput(request);
   },
   selectOutputDirectory(): Promise<string | null> {
     return window.subMusic.export.selectOutputDirectory();

@@ -152,6 +152,24 @@ export const ExportModal = ({
       return;
     }
 
+    const outputCheck = await exportService.checkOutput({
+      outputName: videoName,
+      outputDirectory,
+      mode
+    });
+
+    if (outputCheck.exists) {
+      const confirmed = window.confirm(
+        `Ya existe una exportacion con ese nombre. Se sobrescribiran ${outputCheck.paths.length} archivo(s). Continuar?`
+      );
+
+      if (!confirmed) {
+        setStatus('idle');
+        setMessage('Exportacion cancelada para evitar sobrescribir archivos.');
+        return;
+      }
+    }
+
     setStatus('preparing');
     setMessage('Preparando archivos temporales');
 

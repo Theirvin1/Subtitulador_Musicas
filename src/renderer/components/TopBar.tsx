@@ -19,6 +19,7 @@ export const TopBar = ({
 }: TopBarProps): JSX.Element => {
   const actionHandlers: Record<string, (() => void) | undefined> = {
     Nuevo: onNewProject,
+    Abrir: onOpenHistory,
     Historial: onOpenHistory,
     Guardar: onSaveProject,
     Exportar: onExportProject

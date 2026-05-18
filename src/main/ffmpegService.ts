@@ -4,6 +4,8 @@ import { basename, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { app, dialog } from 'electron';
 import type {
+  ExportOutputCheckRequest,
+  ExportOutputCheckResult,
   ExportQuality,
   ExportRequest,
   ExportResult,
@@ -191,6 +193,32 @@ const createAssFile = (project: Project, blocks: SubtitleBlock[]): string => {
 
 const sanitizeOutputName = (name: string): string => {
   return name.trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
+};
+
+export const checkExportOutputExists = (request: unknown): ExportOutputCheckResult => {
+  if (!request || typeof request !== 'object') {
+    return { exists: false, paths: [] };
+  }
+
+  const outputRequest = request as ExportOutputCheckRequest;
+  const outputStem = sanitizeOutputName(outputRequest.outputName).replace(/\.(mp4|mp3)$/i, '');
+
+  if (!outputStem || !outputRequest.outputDirectory) {
+    return { exists: false, paths: [] };
+  }
+
+  const exportDirectory = resolve(outputRequest.outputDirectory, outputStem);
+  const candidatePaths = [
+    outputRequest.mode !== 'MP3_ONLY' ? resolve(exportDirectory, `${outputStem}.mp4`) : '',
+    outputRequest.mode !== 'MP4' ? resolve(exportDirectory, `${outputStem}.mp3`) : '',
+    resolve(exportDirectory, 'portada.png')
+  ].filter(Boolean);
+  const existingPaths = candidatePaths.filter((path) => existsSync(path));
+
+  return {
+    exists: existingPaths.length > 0,
+    paths: existingPaths
+  };
 };
 
 const getProjectCoverDirectory = (projectId: string): string => {

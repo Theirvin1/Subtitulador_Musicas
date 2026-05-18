@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants/ipc';
 import type {
+  ExportOutputCheckRequest,
   ExportRequest,
   ExportValidationRequest,
   ExtractCoverFrameRequest
@@ -30,6 +31,8 @@ const api = {
   },
   export: {
     checkFfmpeg: () => ipcRenderer.invoke(IPC_CHANNELS.export.checkFfmpeg),
+    checkOutput: (request: ExportOutputCheckRequest) =>
+      ipcRenderer.invoke(IPC_CHANNELS.export.checkOutput, request),
     selectOutputDirectory: () => ipcRenderer.invoke(IPC_CHANNELS.export.selectOutputDirectory),
     extractCoverFrame: (request: ExtractCoverFrameRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.export.extractCoverFrame, request),
