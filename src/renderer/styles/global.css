@@ -245,6 +245,7 @@ button {
 .preview-canvas__screen {
   display: grid;
   min-height: 0;
+  overflow: hidden;
   place-items: center;
   border-radius: 8px;
   background:
@@ -255,9 +256,9 @@ button {
 .preview-canvas__frame {
   position: relative;
   display: grid;
-  width: min(760px, 92%);
+  width: auto;
+  height: min(520px, 88%);
   max-width: min(760px, 92%);
-  max-height: min(520px, 88%);
   overflow: hidden;
   container-type: inline-size;
   border-radius: 8px;
@@ -2066,8 +2067,13 @@ body {
 }
 
 .top-bar__brand strong,
+.top-bar__project strong,
 .settings-panel__header p,
 .subtitle-blocks__header p,
+.new-project-modal__header p,
+.history-modal__header p,
+.lyrics-modal__header p,
+.export-modal__header p,
 .settings-panel__group h2,
 .sync-tools__header h3,
 .subtitle-card__index strong,
@@ -2082,6 +2088,10 @@ body {
 .editor-page__status,
 .settings-panel__header span,
 .subtitle-blocks__header span,
+.new-project-modal__header span,
+.history-modal__header span,
+.lyrics-modal__header span,
+.export-modal__header span,
 .settings-panel__details dt,
 .media-loader__item span,
 .media-loader__item small,
@@ -2103,6 +2113,7 @@ body {
 .editor-page__status,
 .sync-tools,
 .export-modal__options,
+.settings-panel__details div,
 .export-modal__summary div,
 .export-modal__outputs {
   background: rgba(32, 36, 42, 0.86);
@@ -2167,6 +2178,9 @@ body {
 .playback-controls button,
 .new-project-modal__actions button,
 .new-project-modal__header button,
+.history-modal__header button,
+.lyrics-modal__header button,
+.export-modal__header button,
 .history-project__actions button,
 .export-modal__folder button,
 .export-modal__actions button,
@@ -2190,6 +2204,9 @@ body {
 .playback-controls button:hover,
 .new-project-modal__actions button:hover,
 .new-project-modal__header button:hover,
+.history-modal__header button:hover,
+.lyrics-modal__header button:hover,
+.export-modal__header button:hover,
 .history-project__actions button:hover,
 .export-modal__folder button:hover,
 .export-modal__actions button:hover,
@@ -2239,13 +2256,21 @@ body {
 .media-loader__item strong,
 .cover-editor__details strong,
 .history-project__date strong,
+.video-format-grid__option strong,
+.video-format-grid__option span,
 .settings-panel__details dd {
   color: #e7edf7;
+}
+
+.video-format-grid__option.is-active strong,
+.video-format-grid__option.is-active span {
+  color: #72d7ca;
 }
 
 .settings-panel__toggle,
 .settings-panel__field select,
 .visual-editor__field input,
+.visual-editor__field select,
 .settings-panel__field input,
 .settings-panel__field select,
 .subtitle-card__time-grid input,
@@ -2253,11 +2278,17 @@ body {
 .new-project-modal__field input,
 .new-project-modal__field select,
 .new-project-modal__field textarea,
+.lyrics-modal__field select,
+.lyrics-modal__textarea textarea,
 .export-modal__folder input,
 .sync-tools__duration input {
   border-color: #3a4350;
   background: #12161b;
   color: #e7edf7;
+}
+
+.settings-panel__toggle {
+  box-shadow: inset 0 0 0 1px #303844;
 }
 
 .settings-panel__toggle input,
@@ -2375,7 +2406,14 @@ body {
 .cover-editor__empty {
   border-color: #3a4350;
   background: rgba(18, 22, 27, 0.72);
-  color: #9aa7b8;
+  color: #c8d2df;
+}
+
+.history-modal__content,
+.new-project-modal__content,
+.lyrics-modal__form,
+.export-modal__content {
+  background: transparent;
 }
 
 .playback-controls__timeline input[type='range'] {
@@ -2461,4 +2499,65 @@ body {
   color: #e7edf7;
   padding: 10px 12px;
   font-weight: 800;
+}
+
+/* Dark theme cleanup for legacy light rules */
+.new-project-modal__header,
+.history-modal__header,
+.lyrics-modal__header,
+.export-modal__header {
+  border-bottom-color: #303844;
+}
+
+.new-project-modal__field,
+.lyrics-modal__field,
+.lyrics-modal__textarea,
+.settings-panel__field,
+.visual-editor__field {
+  color: #d8e1ec;
+}
+
+.settings-panel__details div,
+.export-modal__summary div {
+  color: #e7edf7;
+}
+
+.top-bar__project strong,
+.settings-panel__details dd,
+.video-format-grid__option strong,
+.video-format-grid__option span,
+.new-project-modal__header p,
+.history-modal__header p,
+.lyrics-modal__header p,
+.export-modal__header p,
+.history-modal__empty,
+.subtitle-blocks__empty {
+  text-shadow: none;
+}
+
+.new-project-modal__header button,
+.history-modal__header button,
+.lyrics-modal__header button,
+.export-modal__header button {
+  min-height: 36px;
+  border-radius: 7px;
+  background: #252b33;
+  color: #e7edf7;
+  box-shadow: inset 0 0 0 1px #3a4350;
+}
+
+.new-project-modal__header button:hover,
+.history-modal__header button:hover,
+.lyrics-modal__header button:hover,
+.export-modal__header button:hover {
+  background: #303844;
+}
+
+.preview-canvas__frame {
+  min-width: 0;
+  min-height: 0;
+}
+
+.preview-canvas__artwork {
+  padding: 28px;
 }
